@@ -1,9 +1,7 @@
 
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
+import java.util.Comparator;
 import java.util.Random;
 
 
@@ -14,14 +12,6 @@ import java.util.Random;
 public class ImperialistCompetitiveAlgorithm
 {
 
-	// Variables
-	protected long seed = System.currentTimeMillis();       
-	Random r = new Random(seed);
-	int problemDimension;						// Problem dimension
-	double[] minBounds;							// Minimum bounds
-	double[] maxBounds;							// Maximum bounds
-	 
-	
 	// ICA parameters
 	int numOfCountries = 80;               		// Number of initial countries
 	int numOfInitialImperialists = 8;      		// Number of initial imperialists
@@ -36,34 +26,49 @@ public class ImperialistCompetitiveAlgorithm
 	double unitingThreshold = 0.02;           	// The percent of search space size, which enables the uniting process of two empires
 
 
-	
+	// Variables
+	protected long seed = System.currentTimeMillis();       
+	Random r = new Random(seed);
+	int problemDimension;						// Problem dimension
+	double[] minBounds;							// Minimum bounds
+	double[] maxBounds;							// Maximum bounds
+	Empire[] empiresList;						// List of Empires
+	double[][] initialCountries;				// List of countries
+	double[] initialCosts;						// Costs of the countries
+	double[] minimumCost = new double[numOfDecades];
+	double[] meanCost = new double[numOfDecades];
+	double[] searchSpaceSize;
+
+
+
 	public ImperialistCompetitiveAlgorithm(Object[] args) 
 	{
 		problemDimension = (Integer) args[0]; 
 		minBounds = (double[]) args[1];
 		maxBounds = (double[]) args[2];
 	}
-	
-	
-	
-	protected void runICA()
+
+
+	protected double[] runICA()
 	{
 
+		searchSpaceSize = new double[problemDimension];
+		for(int i=0; i<problemDimension; i++)
+		{
+			searchSpaceSize[i] = maxBounds[i] - minBounds[i];
+		}
+
 		// Create an initial population of individuals (countries)
-		ArrayList<double[]> initialCountries = generateNewCountries(problemDimension, minBounds, maxBounds, r);
-		
+		generateNewCountries();
+
 		// Compute the cost of each country: the lesser the cost, the more powerful the country is
-		double[] initialCosts = getCountriesCosts(initialCountries);
-		
-		// Sort the costs in assending order. The best countries will be in higher places.
-		java.util.Arrays.sort(initialCosts);
-		
-		// Then sort the population with respect to their cost.
-		//TODO: [initialCost,sortInd] = sort(initialCost);
-		//TODO: initialCountries = initialCountries(sortInd,:);
+		getCountriesCosts();
+
+		// Sort the costs and the corresponding countries in assending order. The best countries will be in higher places.
+		sortArray(initialCosts, initialCountries);
 
 		// Create initial empires
-		ArrayList<Empire> empiresList = createInitialEmpires(initialCountries, initialCosts);
+		createInitialEmpires();
 
 
 		// While no stopping condition is met
@@ -71,63 +76,116 @@ public class ImperialistCompetitiveAlgorithm
 		{
 			revolutionRate = dampRatio * revolutionRate;
 
-			for (int i=0; i<empiresList.size(); i++)
+			for (int i=0; i<empiresList.length; i++)
 			{
 				// Assimilation;  Movement of Colonies Toward Imperialists (Assimilation Policy)
-				empiresList(ii) = assimilateColonies(empires(ii));
+				assimilateColonies(empiresList[i]);
 
 				// Revolution;  A Sudden Change in the Socio-Political Characteristics
-				empiresList(ii) = revolveColonies(empires(ii));
+				revolveColonies(empiresList[i]);
 
 				// New Cost Evaluation
-				empiresList(i).ColoniesCost = feval(ProblemParams.CostFuncName,empiresList(i).ColoniesPosition,ProblemParams.CostFuncExtraParams);
+				empiresList[i].setColoniesCost( getCountriesCosts( empiresList[i].getColoniesPosition()) );
 
 				// Empire Possession
-				empiresList(ii) = possesEmpire(empiresList(ii));
+				possesEmpire(empiresList[i]);
 
 				// Computation of Total Cost for Empires
-				empiresList(i).TotalCost = empiresList(i).ImperialistCost + zeta * mean(empiresList(i).ColoniesCost);
+				empiresList[i].setTotalCost( empiresList[i].getImperialistCost() + zeta * mean(empiresList[i].getColoniesCost()) );
 			}
 
 			// Uniting Similiar Empires
-			empiresList = uniteSimilarEmpires(empiresList);
+			uniteSimilarEmpires();
 
 			// Imperialistic Competition
-			empiresList = imperialisticCompetition(empiresList);
+			imperialisticCompetition();
 
-			if (empiresList.size() == 1 && stopIfJustOneEmpire)
+			if (empiresList.length == 1 && stopIfJustOneEmpire)
 			{
 				break;
 			}
 
-		} // End of Algorithm
+			// Extract results of the round
+			double[] imperialistCosts = new double[empiresList.length];
+			for(int i=0; i<empiresList.length ; i++)
+			{
+				imperialistCosts[i] = empiresList[i].getImperialistCost();
+			}
+			minimumCost[decade] = imperialistCosts[min(imperialistCosts)];
+			meanCost[decade] = mean(imperialistCosts);
 
-		
-		
-		BestCost = MinimumCost(end);
-		BestIndex = find(ImerialistCosts == min(ImerialistCosts)); BestIndex = BestIndex(1);
-		BestSolution = Empires(BestIndex).ImperialistPosition;
+		}
 
-		y=BestSolution;
+
+		double bestCost = minimumCost[min(minimumCost)];
+		int bestIndex = min(minimumCost);
+		double[] bestSolution = empiresList[bestIndex].getImperialistPosition();
+
+		System.out.println("Best solution: " + bestSolution);
+		System.out.println("Best fitness: " + bestCost);
+		
+		return bestSolution;
 
 	}
 
 
 
-	private double[] getCountriesCosts(ArrayList<double[]> initialCountries) 
+	private double[] getCountriesCosts(double[][] coloniesPosition) 
 	{
-		double[] costs = new double[initialCountries.size()];
+		double[] costs = new double[coloniesPosition.length];
 		
-		for(int i=0; i<initialCountries.size(); i++)
+		for(int i=0; i<coloniesPosition.length; i++)
 		{
-			costs[i] = getCountryCost(initialCountries.get(i));
+			costs[i] = getCountryCost(coloniesPosition[i]);
 		}
 		return costs;
 	}
 
 
+	private void sortArray(final double[] arrayToSort, double[][] matchingArray) 
+	{
+		Integer[] sortOrder = new Integer[arrayToSort.length];
 
-	private double getCountryCost(double[] ds) 
+		// Create index array.
+		for(int i=0; i<sortOrder.length; i++)
+		{
+			sortOrder[i] = i;
+		}
+
+		Arrays.sort(sortOrder,new Comparator<Integer>() 
+				{   
+			public int compare(Integer a, Integer b)
+			{
+				double delta = arrayToSort[b]-arrayToSort[a];
+			    if(delta > 0) return 1;
+			    if(delta < 0) return -1;
+			    return 0;
+			}});
+		
+		double[] arrayToSortCopy = arrayToSort.clone();
+        double[][] matchingArrayCopy = matchingArray.clone();
+            
+		for(int i=0;i<sortOrder.length;i++)
+		{
+			initialCosts[i] = arrayToSortCopy[sortOrder[i]];
+			initialCountries[i] = matchingArrayCopy[sortOrder[i]];
+        }
+	}
+
+
+	private void getCountriesCosts() 
+	{
+		initialCosts = new double[numOfCountries];
+
+		for(int i=0; i<numOfCountries; i++)
+		{
+			initialCosts[i] = getCountryCost(initialCountries[i]);
+		}
+	}
+
+
+
+	private double getCountryCost(double[] country) 
 	{
 		// TODO Auto-generated method stub
 		return 0;
@@ -135,103 +193,251 @@ public class ImperialistCompetitiveAlgorithm
 
 
 
-	private ArrayList<double[]> generateNewCountries(int dimension, double[] minBounds2, double[] maxBounds2, Random r2) 
+	private void generateNewCountries() 
 	{
-		ArrayList<double[]> initialCountries = new ArrayList<double[]>();  
-		
-		for(int i=0; i<initialCountries.size(); i++)
+		initialCountries = new double[numOfCountries][problemDimension];  
+
+		for(int i=0; i<numOfCountries; i++)
 		{
-			double[] newRandomCountry = new double[dimension];
-			
-			for(int j=0; j<dimension; j++)
+			for(int j=0; j<problemDimension; j++)
 			{
-				newRandomCountry[j] = (maxBounds[j] - minBounds[j]) * r2.nextDouble() + minBounds[j];
+				initialCountries[i][j] = (maxBounds[j] - minBounds[j]) * r.nextDouble() + minBounds[j];
 			}
-			initialCountries.add(newRandomCountry);
 		}
-		return initialCountries;
 	}
 
 
 
-	private ArrayList<double[]> createInitialEmpires(ArrayList<double[]> initialCountries, double[] initialCosts)
+	private double[][] extractPartOfArray(double[][] array, int startIndex, int endIndex)
+	{
+		int secondDimSize = array[0].length;
+		double[][] arrayExtract = new double[endIndex-startIndex][secondDimSize];
+
+		int newIndex = 0;
+		for(int i=startIndex; i<endIndex ; i++)
+		{
+			for(int j=0; j<secondDimSize; j++)
+			{
+				arrayExtract[newIndex][j] = array[i][j];
+			}
+			newIndex++;
+		}
+
+		return arrayExtract;
+	}
+
+
+	private void createInitialEmpires()
 	{
 
-		// Extract the best countries and their costs to create empires
-		ArrayList<double[]> allImperialistsPosition = (ArrayList<double[]>) initialCountries.subList(0, numOfInitialImperialists);
+		// Extract the best countries to create empires
+		double[][] allImperialistsPosition = extractPartOfArray(initialCountries, 0, numOfInitialImperialists);
+
+		// Extract their costs
 		double[] allImperialistsCost = new double[numOfInitialImperialists];
 		System.arraycopy(initialCosts, 0, allImperialistsCost, 0, numOfInitialImperialists);
 
 		// Extract the rest to create colonies
-		ArrayList<double[]> allColoniesPosition = (ArrayList<double[]>) initialCountries.subList(numOfInitialImperialists,initialCountries.size());
+		double[][] allColoniesPosition = extractPartOfArray(initialCountries, numOfInitialImperialists, initialCountries.length);
+
+		// Extract their costs
 		double[] allColoniesCost = new double[initialCosts.length-numOfInitialImperialists]; 
 		System.arraycopy(initialCosts, numOfInitialImperialists, allColoniesCost, 0, initialCosts.length-numOfInitialImperialists);	
 
 		// Compute the power of imperialists
-		double[] allImperialistsPower;
-		if(max(allImperialistsCost)>0)
+		double[] allImperialistsPower = new double[numOfInitialImperialists];
+
+		if(allImperialistsCost[max(allImperialistsCost)]>0)
 		{
 			for(int i=0; i<allImperialistsCost.length; i++)
 			{
-				allImperialistsPower[i] = 1.3 * max(allImperialistsCost) - allImperialistsCost[i];
+				allImperialistsPower[i] = 1.3 * allImperialistsCost[max(allImperialistsCost)] - allImperialistsCost[i];
 			}
 		}
 		else
 		{
 			for(int i=0; i<allImperialistsCost.length; i++)
 			{
-				allImperialistsPower[i] = 0.7 * max(allImperialistsCost) - allImperialistsCost[i];
+				allImperialistsPower[i] = 0.7 * allImperialistsCost[max(allImperialistsCost)] - allImperialistsCost[i];
 			}
 		}
 
-		// 
-		double[] allImperialistNumOfColonies = round(allImperialistsPower/sum(allImperialistsPower) * numOfAllColonies);
-		double[] allImperialistNumOfColonies(allImperialistNumOfColonies.length-1) = numOfAllColonies - sum(allImperialistNumOfColonies(1:end-1));
-		randomIndex = randperm(numOfAllColonies);
+		// Set the number of colonies for the imperialists 
+		int[] allImperialistNumOfColonies = new int[numOfInitialImperialists];
+		for(int i=0; i<allImperialistsPower.length; i++)
+		{
+			allImperialistNumOfColonies[i] = (int) Math.round(allImperialistsPower[i]/sum(allImperialistsPower) * numOfAllColonies);
+		}
+		allImperialistNumOfColonies[allImperialistNumOfColonies.length-1] = 
+			numOfAllColonies - 
+			sum(Arrays.copyOfRange(allImperialistNumOfColonies, 0, allImperialistNumOfColonies.length-1));
 
-		
-		empires(numOfInitialImperialists).ImperialistPosition = 0;
+		// Create a random permutation of integers
+		int[] randomIndex = randperm(numOfAllColonies);
+
+		// Set the position of the last imperialist
+		double[] zeros = new double[problemDimension];
+		Arrays.fill(zeros, 0);
+		empiresList[numOfInitialImperialists].setImperialistPosition(zeros);
 
 		// Create imperialist empires
-		for(ii=1; ii<numOfInitialImperialists; ii++)
+		for(int i=1; i<numOfInitialImperialists; i++)
 		{
-			Empires(ii).ImperialistPosition = AllImperialistsPosition(ii,:);
-			Empires(ii).ImperialistCost = AllImperialistsCost(ii,:);
-			R = RandomIndex(1:AllImperialistNumOfColonies(ii)); 
-			RandomIndex(AllImperialistNumOfColonies(ii)+1:end);
-			Empires(ii).ColoniesPosition = AllColoniesPosition(R,:);
-			Empires(ii).ColoniesCost = AllColoniesCost(R,:);
-			Empires(ii).TotalCost = Empires(ii).ImperialistCost + zeta * mean(Empires(ii).ColoniesCost);
+			empiresList[i].setImperialistPosition(allImperialistsPosition[i]);
+			empiresList[i].setImperialistCost(allImperialistsCost[i]);
+
+			int[] R = Arrays.copyOfRange(randomIndex, 0, allImperialistNumOfColonies[i]);
+			// randomIndex(allImperialistNumOfColonies(i)+1:end);
+
+			empiresList[i].setColoniesPosition(extractGivenArrayParts(allColoniesPosition, R));
+			empiresList[i].setColoniesCost(extractGivenArrayParts(allColoniesCost, R));
+			empiresList[i].setTotalCost(empiresList[i].getImperialistCost() + zeta * mean(empiresList[i].getColoniesCost()));
 		}
 
-		for(ii=1; ii<=numel(Empires); ii++)
+		for(int i=0; i<empiresList.length; i++)
 		{
-			if(numel(Empires(ii).ColoniesPosition) == 0)
+			if(empiresList[i].getColoniesPosition().length == 0)
 			{
-				Empires(ii).ColoniesPosition = GenerateNewCountry(1,ProblemParams);
-				Empires.ColoniesCost = feval(ProblemParams.FunctionName,Empires.ColoniesPosition);
+				empiresList[i].setColoniesPosition(generateNewCountry(1));
+				// TODO not always necessary?
+				//empiresList[i].setColoniesCost( getCountriesCosts(empiresList[i].getColoniesPosition()));
 			}
 		}
 
-		return empires;
 	}
 
-	
-	
+
+	private double[][] generateNewCountry(int number) 
+	{
+		double[][] countries = new double[number][problemDimension];  
+
+		for(int i=0; i<number; i++)
+		{
+			for(int j=0; j<problemDimension; j++)
+			{
+				countries[i][j] = (maxBounds[j] - minBounds[j]) * r.nextDouble() + minBounds[j];
+			}
+		}
+		return countries;
+	}
+
+
+	public static double mean(double[] p) 
+	{
+		double sum = 0;
+		for (int i=0; i<p.length; i++) 
+		{
+			sum += p[i];
+		}
+		return sum / p.length;
+	}
+
+
+	private double[][] extractGivenArrayParts(double[][] array, int[] selectedIndexes) 
+	{
+		double[][] arrayExtract = new double[selectedIndexes.length][array[0].length];
+
+		for(int i=0; i<selectedIndexes.length; i++)
+		{
+			int index = selectedIndexes[i];
+			for(int j=0; j<array[0].length; j++)
+			{
+				arrayExtract[i][j] = array[index][j];
+			}
+		}
+
+		return arrayExtract;
+	}
+
+
+	private double[] extractGivenArrayParts(double[] array, int[] selectedIndexes) 
+	{
+		double[] arrayExtract = new double[selectedIndexes.length];
+
+		for(int i=0; i<selectedIndexes.length; i++)
+		{
+			int index = selectedIndexes[i];
+			arrayExtract[i] = array[index];
+		}
+
+		return arrayExtract;
+	}
+
+
+	private int[] randperm(int size) 
+	{
+		int[] vector = new int[size];
+
+		for(int i=0; i<size; i++)
+		{
+			int val;
+			do
+			{
+				val = r.nextInt(size);
+			}
+			while(isNotAlreadyinVector(vector, val));
+			vector[i] = val;
+		}
+
+		return vector;
+	}
+
+
+	private boolean isNotAlreadyinVector(int[] vector, int val) 
+	{
+		boolean answer = false;
+		int i = 0;
+		while(i<vector.length && answer == false)
+		{
+			if(vector[i] == val)
+			{
+				answer = true;
+			}
+			i++;
+		}
+
+		return answer;
+	}
+
+
+	private double sum(double[] array)
+	{
+		double sum = 0;
+		for (double i : array) 
+		{
+			sum += i;
+		}
+		return sum;
+	}
+
+
+	private int sum(int[] array)
+	{
+		int sum = 0;
+		for (int i : array) 
+		{
+			sum += i;
+		}
+		return sum;
+	}
+
+
+	// Empire class
 	private class Empire
 	{
-		
-		//TODO: tableau/liste d'empires
-		int imperialistPosition;
+
+		// Empire characteristics
+		double[] imperialistPosition;
 		double imperialistCost;
-		int[] coloniesPosition;
+		double[][] coloniesPosition;
 		double[] coloniesCost;
 		double totalCost;
-		
-		public int getImperialistPosition() {
+
+		// Getters and setters
+		public double[] getImperialistPosition() {
 			return imperialistPosition;
 		}
-		public void setImperialistPosition(int imperialistPosition) {
+		public void setImperialistPosition(double[] imperialistPosition) {
 			this.imperialistPosition = imperialistPosition;
 		}
 		public double getImperialistCost() {
@@ -240,10 +446,10 @@ public class ImperialistCompetitiveAlgorithm
 		public void setImperialistCost(double imperialistCost) {
 			this.imperialistCost = imperialistCost;
 		}
-		public int[] getColoniesPosition() {
+		public double[][] getColoniesPosition() {
 			return coloniesPosition;
 		}
-		public void setColoniesPosition(int[] coloniesPosition) {
+		public void setColoniesPosition(double[][] coloniesPosition) {
 			this.coloniesPosition = coloniesPosition;
 		}
 		public double[] getColoniesCost() {
@@ -258,201 +464,462 @@ public class ImperialistCompetitiveAlgorithm
 		public void setTotalCost(double totalCost) {
 			this.totalCost = totalCost;
 		}
-
-	}
-	
-
-	 private double max(double[] values) {
-         double max = Double.MIN_VALUE;
-         for(double value : values) 
-         {
-                 if(value > max)
-                         max = value;
-         }
-         return max;
-	 }
-	
-	
-
-	private Empire assimilateColonies(Empire theEmpire)
-	{
-
-		numOfColonies = size(TheEmpire.ColoniesPosition,1);
-
-		Vector = repmat(TheEmpire.ImperialistPosition,numOfColonies,1)-theEmpire.ColoniesPosition;
-
-		TheEmpire.ColoniesPosition = TheEmpire.ColoniesPosition + 2 * assimilationCoefficient * rand(size(Vector)) .* Vector;
-
-		MinVarMatrix = repmat(varMin,numOfColonies,1);
-		MaxVarMatrix = repmat(varMax,numOfColonies,1);
-
-		TheEmpire.ColoniesPosition=max(TheEmpire.ColoniesPosition,MinVarMatrix);
-		TheEmpire.ColoniesPosition=min(TheEmpire.ColoniesPosition,MaxVarMatrix);
-
-		return TheEmpire;
-	}
-
-
-
-	private TheEmpire revolveColonies(TheEmpire)
-	{
-		numOfRevolvingColonies = round(revolutionRate * numel(TheEmpire.ColoniesCost));
-		revolvedPosition = GenerateNewCountry(numOfRevolvingColonies);
-		R = randperm(numel(TheEmpire.ColoniesCost));
-		R = R(1:NumOfRevolvingColonies);
-		TheEmpire.ColoniesPosition(R,:) = RevolvedPosition;
-		return TheEmpire;
-	}
-
-
-
-	private TheEmpire possesEmpire(TheEmpire)
-	{
-		ColoniesCost = TheEmpire.ColoniesCost;
-
-		[MinColoniesCost BestColonyInd]=min(ColoniesCost);
-
-		if(MinColoniesCost < TheEmpire.ImperialistCost)
+		public void setColoniesPosition(int bestColonyInd, double[] oldImperialistPosition) 
 		{
-			OldImperialistPosition = TheEmpire.ImperialistPosition;
-			OldImperialistCost = TheEmpire.ImperialistCost;
-
-			TheEmpire.ImperialistPosition = TheEmpire.ColoniesPosition(BestColonyInd,:);
-			TheEmpire.ImperialistCost = TheEmpire.ColoniesCost(BestColonyInd);
-
-			TheEmpire.ColoniesPosition(BestColonyInd,:) = OldImperialistPosition;
-			TheEmpire.ColoniesCost(BestColonyInd) = OldImperialistCost;
+			this.coloniesPosition[bestColonyInd] = oldImperialistPosition;
 		}
-		return TheEmpire;
+		public void setColoniesCost(int bestColonyInd, double oldImperialistCost) 
+		{
+			this.coloniesCost[bestColonyInd] = oldImperialistCost;
+
+		}
+
+	}
+
+
+	private int max(double[] values)
+	{
+		double max = Double.MIN_VALUE;
+		int i;
+		int bestIndex = 0;
+		for(i=0; i<values.length; i++) 
+		{
+			if(values[i] > max)
+			{
+				max = values[i];
+				bestIndex = i;
+			}
+		}
+		return bestIndex;
 	}
 
 
 
-	private Empires uniteSimilarEmpires(Empires)
+	private int min(double[] values)
+	{
+		double min = Double.MAX_VALUE;
+		int i;
+		int bestIndex = 0;
+		for(i=0; i<values.length; i++) 
+		{
+			if(values[i] < min)
+			{
+				min = values[i];
+				bestIndex = i;
+			}
+		}
+		return bestIndex;
+	}
+
+
+
+	private void assimilateColonies(Empire theEmpire)
 	{
 
-		TheresholdDistance = AlgorithmParams.UnitingThreshold * norm(ProblemParams.SearchSpaceSize);
-		NumOfEmpires = numel(Empires);
+		int numOfColonies = theEmpire.getColoniesPosition().length;
 
-		for(ii=1; ii<=(NumOfEmpires-1); ii++)
+		double[][] vector = repmat(theEmpire.getImperialistPosition(),numOfColonies);
+		for(int i=0; i<vector.length; i++)
 		{
-			for(jj=ii+1; jj<=NumOfEmpires; jj++)
+			for(int j=0; j<vector[0].length; j++)
 			{
-				DistanceVector = Empires(ii).ImperialistPosition - Empires(jj).ImperialistPosition;
-				Distance = norm(DistanceVector);
-				if(Distance<=TheresholdDistance)
+				vector[i][j] = vector[i][j] - theEmpire.getColoniesPosition()[i][j];
+			}
+		}
+
+		double[][] coloniesPosition = new double[vector.length][vector[0].length];
+
+		for(int i=0; i<vector.length; i++)
+		{
+			for(int j=0; j<vector[0].length; j++)
+			{
+				coloniesPosition[i][j] = theEmpire.getColoniesPosition()[i][j] + 2 * assimilationCoefficient * r.nextInt(vector.length) * vector[i][j];
+			}
+		}
+
+		theEmpire.setColoniesPosition(coloniesPosition);
+
+		double[][] minVarMatrix = repmat(minBounds,numOfColonies);
+		double[][] maxVarMatrix = repmat(maxBounds,numOfColonies);
+
+		theEmpire.setColoniesPosition(max(theEmpire.getColoniesPosition(),minVarMatrix));
+		theEmpire.setColoniesPosition(min(theEmpire.getColoniesPosition(),maxVarMatrix));
+	}
+
+
+
+	private double[][] max(double[][] array1, double[][] array2) 
+	{
+		double maxArray[][] = new double[array1.length][array1[0].length];
+
+		for(int i=0; i<array1.length; i++)
+		{
+			for(int j=0; j<array1[0].length; j++)
+			{
+				maxArray[i][j] = Math.max(array1[i][j], array2[i][j]);
+			}
+		}
+
+		return maxArray;
+	}
+
+
+	private double[][] min(double[][] array1, double[][] array2) 
+	{
+		double minArray[][] = new double[array1.length][array1[0].length];
+
+		for(int i=0; i<array1.length; i++)
+		{
+			for(int j=0; j<array1[0].length; j++)
+			{
+				minArray[i][j] = Math.min(array1[i][j], array2[i][j]);
+			}
+		}
+
+		return minArray;
+	}
+
+
+	private double[][] repmat(double[] motif, int number) 
+	{
+		double[][] patchwork = new double[number][motif.length];
+
+		for(int i=0; i<number; i++)
+		{
+			for(int j=0; j<motif.length; j++)
+			{
+				patchwork[i][j] = motif[j];
+			}
+		}
+		return patchwork;
+	}
+
+
+	private void revolveColonies(Empire theEmpire)
+	{
+		int numOfRevolvingColonies = (int) Math.round((revolutionRate * theEmpire.getColoniesCost().length));
+
+		double[][] revolvedPosition = generateNewCountry(numOfRevolvingColonies);
+
+		int[] R = randperm(theEmpire.getColoniesCost().length);
+		R = Arrays.copyOfRange(R, 0, numOfRevolvingColonies);
+
+		theEmpire.setColoniesPosition(extractGivenArrayParts(revolvedPosition, R));
+	}
+
+
+
+	private void possesEmpire(Empire theEmpire)
+	{
+		double[] coloniesCost = theEmpire.getColoniesCost();
+
+		int bestColonyInd = min(coloniesCost);
+		double minColoniesCost = coloniesCost[bestColonyInd]; 
+
+		if(minColoniesCost < theEmpire.getImperialistCost())
+		{
+			double[] oldImperialistPosition = theEmpire.getImperialistPosition();
+			double oldImperialistCost = theEmpire.getImperialistCost();
+
+			theEmpire.setImperialistPosition(theEmpire.getColoniesPosition()[bestColonyInd]);
+			theEmpire.setImperialistCost(theEmpire.getColoniesCost()[bestColonyInd]);
+
+			theEmpire.setColoniesPosition(bestColonyInd, oldImperialistPosition);
+			theEmpire.setColoniesCost(bestColonyInd, oldImperialistCost);
+		}
+	}
+
+
+
+	private void uniteSimilarEmpires()
+	{
+		double theresholdDistance = unitingThreshold * norm(searchSpaceSize);
+		int numOfEmpires = empiresList.length;
+
+		for(int i=0; i<(numOfEmpires-1); i++)
+		{
+			for(int j=i; j<numOfEmpires; j++)
+			{
+
+				// Compute the distance between two empires
+				double[] distanceVector = new double[empiresList[i].getImperialistPosition().length];
+				for(int k=0; k<empiresList[i].getImperialistPosition().length; k++)
 				{
-					if(Empires(ii).ImperialistCost < Empires(jj).ImperialistCost)
+					distanceVector[k] = empiresList[i].getImperialistPosition()[k] - empiresList[j].getImperialistPosition()[k];
+				}
+				double distance = norm(distanceVector);
+
+				// If the empires are too close
+				if(distance<=theresholdDistance)
+				{
+					int betterEmpireInd;
+					int worseEmpireInd;
+					if(empiresList[i].getImperialistCost() < empiresList[j].getImperialistCost())
 					{
-						BetterEmpireInd=ii;
-						WorseEmpireInd=jj;
+						betterEmpireInd=i;
+						worseEmpireInd=j;
 					}
 					else
 					{
-						BetterEmpireInd=jj;
-						WorseEmpireInd=ii;
+						betterEmpireInd=j;
+						worseEmpireInd=i;
 					}
 
-					Empires(BetterEmpireInd).ColoniesPosition = [Empires(BetterEmpireInd).ColoniesPosition
-					                                             Empires(WorseEmpireInd).ImperialistPosition
-					                                             Empires(WorseEmpireInd).ColoniesPosition];
+					// Update the positions
+					int newSize = 
+						empiresList[betterEmpireInd].getColoniesPosition().length + 
+						1 + 
+						empiresList[worseEmpireInd].getColoniesPosition().length;
 
-					Empires(BetterEmpireInd).ColoniesCost = [Empires(BetterEmpireInd).ColoniesCost
-					                                         Empires(WorseEmpireInd).ImperialistCost
-					                                         Empires(WorseEmpireInd).ColoniesCost];
+					double[][] newColoniesPosition = new double[newSize][empiresList[betterEmpireInd].getColoniesPosition()[0].length];
+
+					int m;
+
+					for(m=0; m<empiresList[betterEmpireInd].getColoniesPosition().length; m++)
+					{
+						newColoniesPosition[m] = empiresList[betterEmpireInd].getColoniesPosition()[m];
+					}
+
+					newColoniesPosition[m+1] = empiresList[worseEmpireInd].getImperialistPosition();
+					int index=m+2;	
+					for(m=index; m<newSize; m++)
+					{
+						newColoniesPosition[m] = empiresList[worseEmpireInd].getColoniesPosition()[m];
+					}
+
+					empiresList[betterEmpireInd].setColoniesPosition(newColoniesPosition);
+
+					// Update the costs
+					int newSize2 = 
+						empiresList[betterEmpireInd].getColoniesCost().length + 
+						1 + 
+						empiresList[worseEmpireInd].getColoniesCost().length;
+
+					double[] newColoniesCost = new double[newSize2];
+
+					int m2;
+
+					for(m2=0; m2<empiresList[betterEmpireInd].getColoniesCost().length; m2++)
+					{
+						newColoniesCost[m2] = empiresList[betterEmpireInd].getColoniesCost()[m2];
+					}
+
+					newColoniesCost[m2+1] = empiresList[worseEmpireInd].getImperialistCost();
+					int index2=m2+2;	
+					for(m2=index2; m2<newSize2; m2++)
+					{
+						newColoniesCost[m2] = empiresList[worseEmpireInd].getColoniesCost()[m2];
+					}
+
+					empiresList[betterEmpireInd].setColoniesCost(newColoniesCost);
+
 
 					// Update TotalCost for new United Empire                                     
-					Empires(BetterEmpireInd).TotalCost = Empires(BetterEmpireInd).ImperialistCost + AlgorithmParams.Zeta * mean(Empires(BetterEmpireInd).ColoniesCost);
+					empiresList[betterEmpireInd].setTotalCost(
+							empiresList[betterEmpireInd].getImperialistCost() +
+							zeta * mean(empiresList[betterEmpireInd].getColoniesCost())
+					);
 
-					Empires = Empires([1:WorseEmpireInd-1 WorseEmpireInd+1:end]);
+					// Update the empires list
+					deleteAnEmpire(worseEmpireInd);
+
 					return;
 				}
 
 			}
-		}
-		return Empires;   
+		}  
 	}
 
 
 
-	private Empires imperialisticCompetition(Empires)
+	private double norm(double[] vector) 
 	{
-		if(rand > .11)
+		double sum = 0;		
+		for(int i=0; i<vector.length; i++)
+		{
+			sum = sum + Math.pow(vector[i],2);
+		}
+		return Math.sqrt(sum);
+	}
+
+
+	private void imperialisticCompetition()
+	{
+		if(r.nextDouble() > .11)
 		{
 			return;
 		}
-		if(numel(Empires)<=1)
+		if(empiresList.length<=1)
 		{
 			return;
 		}
 
-		TotalCosts = [Empires.TotalCost];
-		[MaxTotalCost WeakestEmpireInd] = max(TotalCosts);
-		TotalPowers = MaxTotalCost - TotalCosts;
-		PossessionProbability = TotalPowers / sum(TotalPowers);
+		// Get the total cost of each empire
+		double[] totalCosts = new double[empiresList.length]; 
+		for(int i=0; i<empiresList.length; i++)
+		{
+			totalCosts[i] = empiresList[i].getTotalCost();
+		}
 
-		SelectedEmpireInd = SelectAnEmpire(PossessionProbability);
+		// Get the weakest empire and its cost
+		int weakestEmpireInd = max(totalCosts);
+		double maxTotalCost = totalCosts[weakestEmpireInd]; 
 
-		nn = numel(Empires(WeakestEmpireInd).ColoniesCost);
-		jj = myrandint(nn,1,1);
+		// Get the power of each empire
+		double[] totalPowers = new double[empiresList.length];
+		for(int i=0; i<empiresList.length; i++)
+		{
+			totalPowers[i] = maxTotalCost - totalCosts[i];
+		}
 
-		Empires(SelectedEmpireInd).ColoniesPosition = [Empires(SelectedEmpireInd).ColoniesPosition
-		                                               Empires(WeakestEmpireInd).ColoniesPosition(jj,:)];
+		// Get the possession probability of each empire
+		double[] possessionProbability = new double[empiresList.length];
+		for(int i=0; i<empiresList.length; i++)
+		{
+			possessionProbability[i] = totalPowers[i] / sum(totalPowers);
+		}
 
-		Empires(SelectedEmpireInd).ColoniesCost = [Empires(SelectedEmpireInd).ColoniesCost
-		                                           Empires(WeakestEmpireInd).ColoniesCost(jj)];
+		// Select an empire according to their probabilities
+		int selectedEmpireInd = selectAnEmpire(possessionProbability);
 
-		Empires(WeakestEmpireInd).ColoniesPosition = Empires(WeakestEmpireInd).ColoniesPosition([1:jj-1 jj+1:end],:);
-		Empires(WeakestEmpireInd).ColoniesCost = Empires(WeakestEmpireInd).ColoniesCost([1:jj-1 jj+1:end],:);
+		// Generate a random integer
+		int nn = empiresList[weakestEmpireInd].getColoniesCost().length;
+		int jj = myRandInt(nn);
+
+		empiresList[selectedEmpireInd].setColoniesPosition(	concetenatePositions(empiresList[selectedEmpireInd].getColoniesPosition(), empiresList[weakestEmpireInd].getColoniesPosition()[jj]) );
+
+		empiresList[selectedEmpireInd].setColoniesCost( concatenateCosts(empiresList[selectedEmpireInd].getColoniesCost(), empiresList[weakestEmpireInd].getColoniesCost()[jj]) );
+
+		empiresList[weakestEmpireInd].setColoniesPosition( removeColonyPosition(empiresList[weakestEmpireInd].getColoniesPosition(), jj) );
+
+		empiresList[weakestEmpireInd].setColoniesCost( removeColonyCost(empiresList[weakestEmpireInd].getColoniesCost(), jj) );
 
 		// Collapse of the the weakest colony-less Empire
-		nn = numel(Empires(WeakestEmpireInd).ColoniesCost);
+		nn = empiresList[weakestEmpireInd].getColoniesCost().length;
 		if(nn<=1)
 		{
-			Empires(SelectedEmpireInd).ColoniesPosition = [Empires(SelectedEmpireInd).ColoniesPosition
-			                                               Empires(WeakestEmpireInd).ImperialistPosition];
+			empiresList[selectedEmpireInd].setColoniesPosition( concetenatePositions(empiresList[selectedEmpireInd].getColoniesPosition(), empiresList[weakestEmpireInd].getImperialistPosition()) );
 
-			Empires(SelectedEmpireInd).ColoniesCost = [Empires(SelectedEmpireInd).ColoniesCost
-			                                           Empires(WeakestEmpireInd).ImperialistCost];
+			empiresList[selectedEmpireInd].setColoniesCost( concatenateCosts(empiresList[selectedEmpireInd].getColoniesCost(), empiresList[weakestEmpireInd].getImperialistCost()) );
 
-			Empires=Empires([1:WeakestEmpireInd-1 WeakestEmpireInd+1:end]);
+			// Update the empires list
+			deleteAnEmpire(weakestEmpireInd);
 		}
-
-		return Empires;
 
 	}
 
 
-
-	private index selectAnEmpire(Probability)
+	private double[][] removeColonyPosition(double[][] colonyPositions, int indexToRemove)
 	{
-		R = rand(size(Probability));
-		D = Probability - R;
-		[MaxD Index] = max(D);
+		double[][] newColonyPositions = new double[colonyPositions.length-1][colonyPositions[0].length];
+
+		for(int i=0; i<indexToRemove; i++)
+		{
+			newColonyPositions[i] = colonyPositions[i];
+		}
+
+		for(int j=indexToRemove; j<newColonyPositions.length; j++)
+		{
+			newColonyPositions[j] = colonyPositions[j+1];
+		}
+
+		return newColonyPositions;
+	}
+
+
+	private double[] removeColonyCost(double[] colonyCosts, int indexToRemove)
+	{
+		double[] newColonyCosts = new double[colonyCosts.length-1];
+
+		for(int i=0; i<indexToRemove; i++)
+		{
+			newColonyCosts[i] = colonyCosts[i];
+		}
+
+		for(int j=indexToRemove; j<newColonyCosts.length; j++)
+		{
+			newColonyCosts[j] = colonyCosts[j+1];
+		}
+
+		return newColonyCosts;
+	}
+
+
+	private double[][] concetenatePositions(double[][] positions1, double[] position2)
+	{
+		int newSize = positions1.length+1;
+		double[][] newPositions = new double[newSize][positions1[0].length];
+
+		int i;
+
+		for(i=0; i<positions1.length; i++)
+		{
+			newPositions[i] = positions1[i];
+		}
+
+		newPositions[i+1] = position2;
+
+		return newPositions;
+	}
+
+
+	private double[] concatenateCosts(double[] costs1, double cost2)
+	{
+		int newSize = costs1.length+1;
+		double[] newCosts = new double[newSize];
+
+		int i;
+
+		for(i=0; i<costs1.length; i++)
+		{
+			newCosts[i] = costs1[i];
+		}
+
+		newCosts[i+1] = cost2;
+
+		return newCosts;
+	}
+
+
+	private void deleteAnEmpire(int indexToDelete)
+	{
+		Empire[] empiresList1 = Arrays.copyOfRange(empiresList, 0, indexToDelete);
+		Empire[] empiresList2 = Arrays.copyOfRange(empiresList, indexToDelete+1, empiresList.length);
+
+		for(int n=0; n<(empiresList1.length + empiresList2.length); n++)
+		{
+			if(n<empiresList1.length)
+			{
+				empiresList[n] = empiresList1[n];
+			}
+
+			if(n>= empiresList1.length)
+			{
+				empiresList[n] = empiresList2[n-empiresList1.length];
+			}
+		}
+	}
+
+
+	private int selectAnEmpire(double[] probability)
+	{
+		int index;
+		double[] randVector = new double[probability.length];
+		Arrays.fill(randVector, r.nextDouble());
+		double[] dVector = new double[probability.length];
+		for(int i=0; i<probability.length; i++)
+		{
+			dVector[i] = probability[i] - randVector[i];
+		}
+		index =  max(dVector);
 		return index;
 	}
 
-	
 
-	private y myrandint(MaxInt,m,n)
+	// This functions creates random numbers between [1 MaxInt] (1 itself and MaxInt itself)
+	private int myRandInt(int maxInt)
 	{
-		// This functions creates random numbers between [1 MaxInt] (1 itself and MaxInt itself)
-		if(nargin == 1)
-		{
-			y = ceil(rand*MaxInt);
-		}
-		else
-		{
-			if(nargin == 3)
-			{
-				y = ceil(rand(m,n)*MaxInt);
-			}
-			else
-			{
-				//warning('Incorrect Number of Inputs');
-			}
-		}
-
+		int y = (int) Math.ceil(r.nextDouble()*maxInt);
 		return y;
 	}
 
