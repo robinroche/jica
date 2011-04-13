@@ -188,7 +188,14 @@ public class ImperialistCompetitiveAlgorithm
 	private double getCountryCost(double[] country) 
 	{
 		// TODO Auto-generated method stub
-		return 0;
+		double fitness = 0;
+		
+		for(int i=0; i<country.length; i++)
+		{
+			fitness = fitness + country[i]*country[i];
+		}
+		
+		return fitness;
 	}
 
 
