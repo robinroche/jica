@@ -283,7 +283,6 @@ public class ImperialistCompetitiveAlgorithm
 	
 	/**
 	 * Generates the initial empires
-	 * @return 
 	 */
 	private void createInitialEmpires()
 	{
@@ -353,6 +352,7 @@ public class ImperialistCompetitiveAlgorithm
 		{
 			int[] R = Arrays.copyOfRange(randomIndex, 0, allImperialistNumOfColonies[i]);
 			empiresList[i].init(R.length);
+			randomIndex = Arrays.copyOfRange(randomIndex, allImperialistNumOfColonies[i], randomIndex.length);
 			
 			empiresList[i].setImperialistPosition(allImperialistsPosition[i]);
 			empiresList[i].setImperialistCost(allImperialistsCost[i]);
@@ -363,71 +363,65 @@ public class ImperialistCompetitiveAlgorithm
 			utils.printEmpire(empiresList[i], i);
 		}
 
-
+		// If an empire has no colony, give it one
 		for(int i=0; i<empiresList.length; i++)
 		{
 			if(empiresList[i].getColoniesPosition().length == 0)
 			{
-				empiresList[i].setColoniesPosition(generateNewCountry(1));
-				// TODO not always necessary?
-				empiresList[i].setColoniesCost( getCountriesCosts(empiresList[i].getColoniesPosition()));
+				empiresList[i].setColoniesPosition(generateNewCountries(1, problemDimension, minBounds, maxBounds, r));
+				empiresList[i].setColoniesCost(getCountriesCosts(empiresList[i].getColoniesPosition()));
 			}
 		}
 
 	}
 
 
-	private double[][] generateNewCountry(int number) 
-	{
-		double[][] countries = new double[number][problemDimension];  
 
-		for(int i=0; i<number; i++)
-		{
-			for(int j=0; j<problemDimension; j++)
-			{
-				countries[i][j] = (maxBounds[j] - minBounds[j]) * r.nextDouble() + minBounds[j];
-			}
-		}
-		return countries;
-	}
-
-
-
-
-
-
-
+	/**
+	 * Assimilates the colonies of an empire: move their positions
+	 * @param theEmpire
+	 */
 	private void assimilateColonies(Empire theEmpire)
 	{
 
+		// Get the number of colonies of the empire
 		int numOfColonies = theEmpire.getColoniesPosition().length;
 
-		double[][] vector = utils.repmat(theEmpire.getImperialistPosition(),numOfColonies);
-		for(int i=0; i<vector.length; i++)
+		// Create an array containing the distance between the imperialist and the colonies
+		double[][] repmatArray = utils.repmat(theEmpire.getImperialistPosition(),numOfColonies);
+		double[][] array = new double[numOfColonies][problemDimension];
+		for(int i=0; i<numOfColonies; i++)
 		{
-			for(int j=0; j<vector[0].length; j++)
+			for(int j=0; j<problemDimension; j++)
 			{
-				vector[i][j] = vector[i][j] - theEmpire.getColoniesPosition()[i][j];
+				array[i][j] = repmatArray[i][j] - theEmpire.getColoniesPosition()[i][j];//TODO: problem here
 			}
 		}
+		//utils.printArray("array",array);
 
-		double[][] coloniesPosition = new double[vector.length][vector[0].length];
+		// Create a new array to store the updated colonies positions
+		double[][] coloniesPosition = new double[numOfColonies][problemDimension];
 
-		for(int i=0; i<vector.length; i++)
+		// Fill the array
+		for(int i=0; i<array.length; i++)
 		{
-			for(int j=0; j<vector[0].length; j++)
+			for(int j=0; j<array[0].length; j++)
 			{
-				coloniesPosition[i][j] = theEmpire.getColoniesPosition()[i][j] + 2 * assimilationCoefficient * r.nextInt(vector.length) * vector[i][j];
+				coloniesPosition[i][j] = theEmpire.getColoniesPosition()[i][j] + 2 * assimilationCoefficient * r.nextDouble() * array[i][j];
 			}
 		}
-
+		
+		// Update the positions
 		theEmpire.setColoniesPosition(coloniesPosition);
+		
+		utils.printArray("theEmpire.getColoniesPosition()", theEmpire.getColoniesPosition());
 
+		// Bound the values with the min and max bounds
 		double[][] minVarMatrix = utils.repmat(minBounds,numOfColonies);
 		double[][] maxVarMatrix = utils.repmat(maxBounds,numOfColonies);
-
 		theEmpire.setColoniesPosition(utils.max(theEmpire.getColoniesPosition(),minVarMatrix));
 		theEmpire.setColoniesPosition(utils.min(theEmpire.getColoniesPosition(),maxVarMatrix));
+		utils.printArray("theEmpire.getColoniesPosition()", theEmpire.getColoniesPosition());
 	}
 
 
@@ -440,7 +434,7 @@ public class ImperialistCompetitiveAlgorithm
 	{
 		int numOfRevolvingColonies = (int) Math.round((revolutionRate * theEmpire.getColoniesCost().length));
 
-		double[][] revolvedPosition = generateNewCountry(numOfRevolvingColonies);
+		double[][] revolvedPosition = generateNewCountries(numOfRevolvingColonies, problemDimension, minBounds, maxBounds, r);
 
 		//System.out.println("about to run randperm : size = " + theEmpire.getColoniesCost().length + " values = " + Arrays.toString(theEmpire.getColoniesCost()));
 		int[] R = utils.randperm(theEmpire.getColoniesCost().length, r);
