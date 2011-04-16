@@ -17,7 +17,7 @@ public class ImperialistCompetitiveAlgorithm
 	int numOfCountries = 40;               		// Number of initial countries
 	int numOfInitialImperialists = 8;      		// Number of initial imperialists
 	int numOfAllColonies = numOfCountries - numOfInitialImperialists;
-	int numOfDecades = 100;					// Number of decades (generations)
+	int numOfDecades = 1000;					// Number of decades (generations)
 	double revolutionRate = 0.1;               	// Revolution is the process in which the socio-political characteristics of a country change suddenly
 	double assimilationCoefficient = 2;        	// In the original paper assimilation coefficient is shown by "beta"
 	double assimilationAngleCoefficient = .785; // In the original paper assimilation angle coefficient is shown by "gama"
@@ -373,7 +373,7 @@ public class ImperialistCompetitiveAlgorithm
 			{
 				empiresList[i].setColoniesPosition(generateNewCountry(1));
 				// TODO not always necessary?
-				//empiresList[i].setColoniesCost( getCountriesCosts(empiresList[i].getColoniesPosition()));
+				empiresList[i].setColoniesCost( getCountriesCosts(empiresList[i].getColoniesPosition()));
 			}
 		}
 
@@ -736,7 +736,7 @@ public class ImperialistCompetitiveAlgorithm
 				// If the empires are too close
 				if(distance<=theresholdDistance)
 				{
-					System.out.println("disrtance = " + distance + " thresesholdDistance = " + theresholdDistance + "fusion of empires " + i + "+" + j);
+					System.out.println("distance = " + distance + " thresesholdDistance = " + theresholdDistance + "fusion of empires " + i + "+" + j);
 					
 					int betterEmpireInd;
 					int worseEmpireInd;
@@ -752,51 +752,11 @@ public class ImperialistCompetitiveAlgorithm
 					}
 
 					// Update the positions
-					int newSize = 
-						empiresList[betterEmpireInd].getColoniesPosition().length + 
-						1 + 
-						empiresList[worseEmpireInd].getColoniesPosition().length;
-
-					double[][] newColoniesPosition = new double[newSize][empiresList[betterEmpireInd].getColoniesPosition()[0].length];
-
-					int m;
-
-					for(m=0; m<empiresList[betterEmpireInd].getColoniesPosition().length; m++)
-					{
-						newColoniesPosition[m] = empiresList[betterEmpireInd].getColoniesPosition()[m];
-					}
-					
-					newColoniesPosition[m] = empiresList[worseEmpireInd].getImperialistPosition();
-					int index=m+1;	
-					for(m=index; m<newSize; m++)
-					{
-						newColoniesPosition[m] = empiresList[worseEmpireInd].getColoniesPosition()[m-empiresList[betterEmpireInd].getColoniesPosition().length-1];
-					}
-
+					double[][] newColoniesPosition = getColonyPositionsOfUnitedEmpire(betterEmpireInd, worseEmpireInd);
 					empiresList[betterEmpireInd].setColoniesPosition(newColoniesPosition);
 
 					// Update the costs
-					int newSize2 = 
-						empiresList[betterEmpireInd].getColoniesCost().length + 
-						1 + 
-						empiresList[worseEmpireInd].getColoniesCost().length;
-
-					double[] newColoniesCost = new double[newSize2];
-
-					int m2;
-
-					for(m2=0; m2<empiresList[betterEmpireInd].getColoniesCost().length; m2++)
-					{
-						newColoniesCost[m2] = empiresList[betterEmpireInd].getColoniesCost()[m2];
-					}
-
-					newColoniesCost[m2] = empiresList[worseEmpireInd].getImperialistCost();
-					int index2=m2+1;	
-					for(m2=index2; m2<newSize2; m2++)
-					{
-						newColoniesCost[m2] = empiresList[worseEmpireInd].getColoniesCost()[m2-empiresList[betterEmpireInd].getColoniesCost().length-1];
-					}
-
+					double[] newColoniesCost = getColonyCostsOfUnitedEmpire(betterEmpireInd, worseEmpireInd);
 					empiresList[betterEmpireInd].setColoniesCost(newColoniesCost);
 
 
@@ -819,6 +779,68 @@ public class ImperialistCompetitiveAlgorithm
 
 
 
+	private double[] getColonyCostsOfUnitedEmpire(int betterEmpireInd, int worseEmpireInd) 
+	{
+		int newSize2 = 
+			empiresList[betterEmpireInd].getColoniesCost().length + 
+			1 + 
+			empiresList[worseEmpireInd].getColoniesCost().length;
+
+		double[] newColoniesCost = new double[newSize2];
+
+		int m2;
+
+		for(m2=0; m2<empiresList[betterEmpireInd].getColoniesCost().length; m2++)
+		{
+			newColoniesCost[m2] = empiresList[betterEmpireInd].getColoniesCost()[m2];
+		}
+
+		newColoniesCost[m2] = empiresList[worseEmpireInd].getImperialistCost();
+		
+		int index2;	
+		for(index2=m2+1; index2<newSize2; index2++)
+		{
+			newColoniesCost[index2] = empiresList[worseEmpireInd].getColoniesCost()[index2-empiresList[betterEmpireInd].getColoniesCost().length-1];
+		}
+		return newColoniesCost;
+	}
+
+
+	private double[][] getColonyPositionsOfUnitedEmpire(int betterEmpireInd, int worseEmpireInd) 
+	{
+		
+		System.out.println("Uniting empire colonies positions:");
+		System.out.println("best colonies: " + empiresList[betterEmpireInd].getColoniesPosition().length + " worst colonies = " + empiresList[worseEmpireInd].getColoniesPosition().length);
+		
+		// The new size = the best empire's colony count + the weakest empire's colony's count + its imperialist
+		int newSize = 
+			empiresList[betterEmpireInd].getColoniesPosition().length + 
+			1 + 
+			empiresList[worseEmpireInd].getColoniesPosition().length;
+
+		double[][] newColoniesPosition = new double[newSize][problemDimension];
+
+		int m;
+		for(m=0; m<empiresList[betterEmpireInd].getColoniesPosition().length; m++)
+		{
+			newColoniesPosition[m] = empiresList[betterEmpireInd].getColoniesPosition()[m];
+		}
+		
+		newColoniesPosition[m] = empiresList[worseEmpireInd].getImperialistPosition();
+		
+		int index;	
+		for(index=m+1; index<newSize; index++)
+		{
+			newColoniesPosition[index] = empiresList[worseEmpireInd].getColoniesPosition()[index-empiresList[betterEmpireInd].getColoniesPosition().length-1];
+		}
+		
+		System.out.println("united empire colonies: " + newColoniesPosition.length);
+		
+		return newColoniesPosition;
+	
+	}
+
+
 	private double norm(double[] vector) 
 	{
 		double sum = 0;		
@@ -832,7 +854,8 @@ public class ImperialistCompetitiveAlgorithm
 
 	private void imperialisticCompetition()
 	{
-		if(r.nextDouble() > .11)
+		double rand = r.nextDouble();
+		if(rand > .11)
 		{
 			return;
 		}
@@ -892,6 +915,7 @@ public class ImperialistCompetitiveAlgorithm
 
 		// Collapse of the the weakest colony-less Empire
 		nn = empiresList[weakestEmpireInd].getColoniesCost().length;
+		System.out.println("weakest empire has: " + nn + " colonies");
 		if(nn<=1)
 		{
 			empiresList[selectedEmpireInd].setColoniesPosition( concetenatePositions(empiresList[selectedEmpireInd].getColoniesPosition(), empiresList[weakestEmpireInd].getImperialistPosition()) );
