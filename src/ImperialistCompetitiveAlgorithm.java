@@ -14,10 +14,10 @@ public class ImperialistCompetitiveAlgorithm
 {
 
 	// ICA parameters
-	int numOfCountries = 20;               		// Number of initial countries
+	int numOfCountries = 40;               		// Number of initial countries
 	int numOfInitialImperialists = 8;      		// Number of initial imperialists
 	int numOfAllColonies = numOfCountries - numOfInitialImperialists;
-	int numOfDecades = 10;					// Number of decades (generations)
+	int numOfDecades = 100;					// Number of decades (generations)
 	double revolutionRate = 0.1;               	// Revolution is the process in which the socio-political characteristics of a country change suddenly
 	double assimilationCoefficient = 2;        	// In the original paper assimilation coefficient is shown by "beta"
 	double assimilationAngleCoefficient = .785; // In the original paper assimilation angle coefficient is shown by "gama"
@@ -53,7 +53,7 @@ public class ImperialistCompetitiveAlgorithm
 	protected double[] runICA()
 	{
 
-		System.out.println("Algorithm launched");
+		//System.out.println("Algorithm launched");
 		
 		searchSpaceSize = new double[problemDimension];
 		for(int i=0; i<problemDimension; i++)
@@ -64,19 +64,22 @@ public class ImperialistCompetitiveAlgorithm
 	
 		// Create an initial population of individuals (countries)
 		generateNewCountries();
-		System.out.println("New countries generated");
+		//System.out.println("New countries generated");
 		
 		// Compute the cost of each country: the lesser the cost, the more powerful the country is
 		getCountriesCosts();
-		System.out.println("Countries costs computed");
+		//System.out.println("Countries costs computed");
 
 		// Sort the costs and the corresponding countries in assending order. The best countries will be in higher places.
 		sortArray(initialCosts, initialCountries);
-		System.out.println("Arrays sorted");
+		//System.out.println("Arrays sorted");
 
 		// Create initial empires
 		createInitialEmpires();
-		System.out.println("Empires created");
+		//System.out.println("Empires created");
+		
+		
+		double[][] bestDecadePosition = new double[numOfDecades][problemDimension];
 		
 		// While no stopping condition is met
 		for(int decade=0; decade<numOfDecades; decade++)
@@ -85,32 +88,51 @@ public class ImperialistCompetitiveAlgorithm
 			
 			revolutionRate = dampRatio * revolutionRate;
 
+			System.out.println("Number of empires: " + empiresList.length);
+			
+			int currentNumOfCountries = 0;
+			for(int i=0; i<empiresList.length; i++)
+			{
+				currentNumOfCountries = currentNumOfCountries + empiresList[i].getColoniesPosition().length;
+				System.out.println("Empire[" + i + "]   Colonies: " + empiresList[i].getColoniesPosition().length);
+			}
+			System.out.println("Total number of colonies: " + currentNumOfCountries);
+			System.out.println("Total number of countries: " + (currentNumOfCountries + empiresList.length));
+			
+			
 			for (int i=0; i<empiresList.length; i++)
 			{
+				
 				// Assimilation;  Movement of Colonies Toward Imperialists (Assimilation Policy)
 				assimilateColonies(empiresList[i]);
-
+				//System.out.println("assimilate colonies done");
+				
 				// Revolution;  A Sudden Change in the Socio-Political Characteristics
 				revolveColonies(empiresList[i]);
-
+				//System.out.println("revolve colonies done");
+				
 				// New Cost Evaluation
 				empiresList[i].setColoniesCost( getCountriesCosts( empiresList[i].getColoniesPosition()) );
-				System.out.println("empire " + i + " colonies cost empire = " + mean(empiresList[i].getColoniesCost()));
+				//System.out.println("empire " + i + " colonies cost empire = " + mean(empiresList[i].getColoniesCost()));
 				
-				// Empire Possession
+				// Empire Possession (a strong colony becomes the imperialist)
 				possesEmpire(empiresList[i]);
-
+				//System.out.println("possess empires done");
+				
 				// Computation of Total Cost for Empires
 				empiresList[i].setTotalCost( empiresList[i].getImperialistCost() + zeta * mean(empiresList[i].getColoniesCost()) );
-				System.out.println("empire " + i + " totalcost of empire = " + empiresList[i].getTotalCost());
+				//System.out.println("empire " + i + " totalcost of empire = " + empiresList[i].getTotalCost());
 			}
 
 			// Uniting Similiar Empires
 			uniteSimilarEmpires();
-
+			//System.out.println("unite empires done");
+			
 			// Imperialistic Competition
 			imperialisticCompetition();
-
+			//System.out.println("competition done");
+			
+			
 			if (empiresList.length == 1 && stopIfJustOneEmpire)
 			{
 				break;
@@ -123,21 +145,20 @@ public class ImperialistCompetitiveAlgorithm
 				imperialistCosts[i] = empiresList[i].getImperialistCost();
 			}
 			minimumCost[decade] = imperialistCosts[min(imperialistCosts)];
-			System.out.println("Minimum decade cost: " + minimumCost[decade]);
+			//System.out.println("Minimum decade cost: " + minimumCost[decade]);
 			meanCost[decade] = mean(imperialistCosts);
+			
+			
+			bestDecadePosition[decade] = empiresList[min(imperialistCosts)].getImperialistPosition();
 
 		}
 
 
 		double bestCost = minimumCost[min(minimumCost)];
 		int bestIndex = min(minimumCost);
-		double[] bestSolution = empiresList[bestIndex].getImperialistPosition();
-
-		System.out.println("Best solution: ");
-		for(int i=0; i<bestSolution.length; i++)
-		{
-			 System.out.println(bestSolution[i]);
-		}
+		//double[] bestSolution = empiresList[bestIndex].getImperialistPosition();
+		double[] bestSolution = bestDecadePosition[bestIndex];
+		System.out.println("Best solution: " + Arrays.toString(bestSolution));
 		System.out.println("Best fitness: " + bestCost);
 		
 		return bestSolution;
@@ -231,7 +252,7 @@ public class ImperialistCompetitiveAlgorithm
 		
 		for(int i=0; i<numOfCountries; i++)
 		{
-			System.out.println("initialcountries i = " + i + " = " + Arrays.toString(initialCountries[i]));
+			//System.out.println("initialcountries i = " + i + " = " + Arrays.toString(initialCountries[i]));
 		}
 	}
 
@@ -293,7 +314,7 @@ public class ImperialistCompetitiveAlgorithm
 			}
 		}
 
-		System.out.println("Powers computed");
+		//System.out.println("Powers computed");
 		
 		// Set the number of colonies for the imperialists 
 		int[] allImperialistNumOfColonies = new int[numOfInitialImperialists];
@@ -306,7 +327,7 @@ public class ImperialistCompetitiveAlgorithm
 			sum(Arrays.copyOfRange(allImperialistNumOfColonies, 0, allImperialistNumOfColonies.length-1)),
 			0);//TODO: à revoir
 
-		System.out.println("Colonies created");
+		//System.out.println("Colonies created");
 		
 		// Create a random permutation of integers
 		int[] randomIndex = randperm(numOfAllColonies);
@@ -323,7 +344,7 @@ public class ImperialistCompetitiveAlgorithm
 
 		empiresList[numOfInitialImperialists-1].setImperialistPosition(zeros);
 
-		System.out.println("Last imperialist set");
+		//System.out.println("Last imperialist set");
 		
 		// Create imperialist empires
 		for(int i=0; i<numOfInitialImperialists; i++)
@@ -338,11 +359,13 @@ public class ImperialistCompetitiveAlgorithm
 			empiresList[i].init(R.length);
 
 			empiresList[i].setColoniesPosition(extractGivenArrayParts(allColoniesPosition, R));
+			System.out.println("num of initial colonies: " + empiresList[i].getColoniesPosition().length);
+			
 			empiresList[i].setColoniesCost(extractGivenArrayParts(allColoniesCost, R));
 			empiresList[i].setTotalCost(empiresList[i].getImperialistCost() + zeta * mean(empiresList[i].getColoniesCost()));
 		}
 
-		System.out.println("Imperialists created");
+		//System.out.println("Imperialists created");
 		
 		for(int i=0; i<empiresList.length; i++)
 		{
@@ -425,12 +448,15 @@ public class ImperialistCompetitiveAlgorithm
 		int[] outputVector = new int[size];
 		
 		int outputIndex = 0;
+		
+		//System.out.println("about to run the loop");
 		while(nVector.size()>0)
 		{
 			int position = r.nextInt(nVector.size());
 			outputVector[outputIndex] = nVector.get(position);
 			outputIndex++;
 			nVector.remove(position);
+			//System.out.println("vector size " + nVector.size());
 		}
 
 		return outputVector;
@@ -654,8 +680,10 @@ public class ImperialistCompetitiveAlgorithm
 
 		double[][] revolvedPosition = generateNewCountry(numOfRevolvingColonies);
 
+		//System.out.println("about to run randperm : size = " + theEmpire.getColoniesCost().length + " values = " + Arrays.toString(theEmpire.getColoniesCost()));
 		int[] R = randperm(theEmpire.getColoniesCost().length);
 		R = Arrays.copyOfRange(R, 0, numOfRevolvingColonies);
+		//System.out.println("R built : " + Arrays.toString(R));
 
 		for(int i=0; i<R.length; i++)
 		{
@@ -694,7 +722,7 @@ public class ImperialistCompetitiveAlgorithm
 
 		for(int i=0; i<(numOfEmpires-1); i++)
 		{
-			for(int j=i; j<numOfEmpires; j++)
+			for(int j=i+1; j<numOfEmpires; j++)
 			{
 
 				// Compute the distance between two empires
@@ -708,6 +736,8 @@ public class ImperialistCompetitiveAlgorithm
 				// If the empires are too close
 				if(distance<=theresholdDistance)
 				{
+					System.out.println("disrtance = " + distance + " thresesholdDistance = " + theresholdDistance + "fusion of empires " + i + "+" + j);
+					
 					int betterEmpireInd;
 					int worseEmpireInd;
 					if(empiresList[i].getImperialistCost() < empiresList[j].getImperialistCost())
@@ -778,6 +808,7 @@ public class ImperialistCompetitiveAlgorithm
 
 					// Update the empires list
 					deleteAnEmpire(worseEmpireInd);
+					System.out.println("New number of empires: " + empiresList.length);
 
 					return;
 				}
@@ -803,7 +834,7 @@ public class ImperialistCompetitiveAlgorithm
 	{
 		if(r.nextDouble() > .11)
 		{
-			return;//TODO
+			return;
 		}
 		if(empiresList.length<=1)
 		{
@@ -842,12 +873,15 @@ public class ImperialistCompetitiveAlgorithm
 		
 		// Select an empire according to their probabilities
 		int selectedEmpireInd = selectAnEmpire(possessionProbability);
-System.out.println("selectedind = " + selectedEmpireInd);
+		System.out.println("selectedind = " + selectedEmpireInd);//TODO
 		
 		// Generate a random integer
 		int nn = empiresList[weakestEmpireInd].getColoniesCost().length;
 		int jj = myRandInt(nn);
 
+		System.out.println("jj = " + jj);
+		System.out.println("colonies length = " + empiresList[weakestEmpireInd].getColoniesPosition().length);
+		
 		empiresList[selectedEmpireInd].setColoniesPosition(	concetenatePositions(empiresList[selectedEmpireInd].getColoniesPosition(), empiresList[weakestEmpireInd].getColoniesPosition()[jj]) );
 
 		empiresList[selectedEmpireInd].setColoniesCost( concatenateCosts(empiresList[selectedEmpireInd].getColoniesCost(), empiresList[weakestEmpireInd].getColoniesCost()[jj]) );
@@ -866,6 +900,7 @@ System.out.println("selectedind = " + selectedEmpireInd);
 
 			// Update the empires list
 			deleteAnEmpire(weakestEmpireInd);
+			System.out.println("New number of empires: " + empiresList.length);
 		}
 
 	}
@@ -909,6 +944,8 @@ System.out.println("selectedind = " + selectedEmpireInd);
 
 	private double[][] concetenatePositions(double[][] positions1, double[] position2)
 	{
+		System.out.println("conatenating colony positions: " + positions1.length);
+		
 		int newSize = positions1.length+1;
 		double[][] newPositions = new double[newSize][positions1[0].length];
 
@@ -945,9 +982,13 @@ System.out.println("selectedind = " + selectedEmpireInd);
 
 	private void deleteAnEmpire(int indexToDelete)
 	{
+		System.out.println("Deleting an empire");
+		
 		Empire[] empiresList1 = Arrays.copyOfRange(empiresList, 0, indexToDelete);
 		Empire[] empiresList2 = Arrays.copyOfRange(empiresList, indexToDelete+1, empiresList.length);
 
+		empiresList = new Empire[empiresList1.length+empiresList2.length];
+		
 		for(int n=0; n<(empiresList1.length + empiresList2.length); n++)
 		{
 			if(n<empiresList1.length)
@@ -991,7 +1032,7 @@ System.out.println("selectedind = " + selectedEmpireInd);
 	// This functions creates random numbers between [1 MaxInt] (1 itself and MaxInt itself)
 	private int myRandInt(int maxInt)
 	{
-		int y = (int) Math.ceil(r.nextDouble()*maxInt);
+		int y = (int) Math.ceil(r.nextDouble()*(maxInt-1));
 		return y;
 	}
 
