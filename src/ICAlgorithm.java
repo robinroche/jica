@@ -115,10 +115,10 @@ public class ICAlgorithm
 		for(int decade=0; decade<numOfDecades; decade++)
 		{
 			
-			System.out.println("-------------");
-			System.out.println("Decade: " + decade);
-			System.out.println("Number of empires: " + empiresList.length);
-			System.out.println("Total number of colonies: " + utils.getTotalColoniesCount(empiresList));
+			//System.out.println("-------------");
+			//System.out.println("Decade: " + decade);
+			//System.out.println("Number of empires: " + empiresList.length);
+			//System.out.println("Total number of colonies: " + utils.getTotalColoniesCount(empiresList));
 			
 			// Update the revolution rate
 			revolutionRate = dampRatio * revolutionRate;
@@ -216,7 +216,7 @@ public class ICAlgorithm
 		return costsVector;
 	}
 
-
+	
 
 	/**
 	 * Returns the cost of one country
@@ -333,7 +333,7 @@ public class ICAlgorithm
 					utils.getSum(Arrays.copyOfRange(allImperialistNumOfColonies, 0, allImperialistNumOfColonies.length-1)),
 					0
 					);
-		utils.printArray("allImperialistNumOfColonies", allImperialistNumOfColonies);
+		//utils.printArray("allImperialistNumOfColonies", allImperialistNumOfColonies);
 
 		// Initialize the empires
 		for(int i=0; i<numOfInitialImperialists; i++)
@@ -357,7 +357,7 @@ public class ICAlgorithm
 			empiresList[i].setColoniesCost(utils.extractGivenArrayParts(allColoniesCost, R));
 			empiresList[i].setTotalCost(empiresList[i].getImperialistCost() + zeta * utils.getMean(empiresList[i].getColoniesCost()));
 			
-			utils.printEmpire(empiresList[i], i);
+			//utils.printEmpire(empiresList[i], i);
 		}
 
 		// If an empire has no colony, give it one
@@ -462,7 +462,7 @@ public class ICAlgorithm
 		int bestColonyInd = utils.getMinIndex(coloniesCost);
 		double minColoniesCost = coloniesCost[bestColonyInd]; 
 
-		// IF this cost is lower than the one of the imperialist
+		// If this cost is lower than the one of the imperialist
 		if(minColoniesCost < theEmpire.getImperialistCost())
 		{
 			// Backup the position and cost of the former imperialist
@@ -482,7 +482,7 @@ public class ICAlgorithm
 
 
 	/**
-	 * Unites imperialists than are close to each other
+	 * Unites imperialists that are close to each other
 	 */
 	private void uniteSimilarEmpires()
 	{

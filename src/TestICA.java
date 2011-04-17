@@ -26,19 +26,24 @@ public class TestICA
 {
 
 	/**
+	 * Main function
 	 * @param args
 	 */
 	public static void main(String[] args) 
 	{
-		int problemDimension = 2; 
-		double[] minBounds = {-10,-10};
-		double[] maxBounds = {10,10};
+
+		// Set the parameters for the optimization
+		int problemDimension = 2;		// The optimization dimension 
+		double[] minBounds = {-10,-10};	// The minimum bounds for each dimension
+		double[] maxBounds = {10,10};	// The maximum bounds for each dimension
 		
+		// 
 		Object[] argsICA ={problemDimension,minBounds,maxBounds};
 		ICAlgorithm ica = new ICAlgorithm(argsICA);
 
 		ica.runICA();
 		
 	}
+
 
 }
