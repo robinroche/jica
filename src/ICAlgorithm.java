@@ -421,21 +421,25 @@ public class ICAlgorithm
 
 
 
-
-
-
-//TODO
+	/**
+	 * Make colonies of an empire revolve.
+	 * This is equivalent to a perturbation which avoid getting stuck 
+	 * into local minima.
+	 * @param theEmpire to revolve
+	 */
 	private void revolveColonies(Empire theEmpire)
 	{
+		// Get the number of colonies to revolve
 		int numOfRevolvingColonies = (int) Math.round((revolutionRate * theEmpire.getColoniesCost().length));
 
+		// Create a new array with new random positions for the revolving colonies
 		double[][] revolvedPosition = generateNewCountries(numOfRevolvingColonies, problemDimension, minBounds, maxBounds, r);
 
-		//System.out.println("about to run randperm : size = " + theEmpire.getColoniesCost().length + " values = " + Arrays.toString(theEmpire.getColoniesCost()));
+		// Generate a vector with integer values in a random order
 		int[] R = utils.randperm(theEmpire.getColoniesCost().length, r);
 		R = Arrays.copyOfRange(R, 0, numOfRevolvingColonies);
-		//System.out.println("R built : " + Arrays.toString(R));
 
+		// Update the positions of the revolved colonies of the empire
 		for(int i=0; i<R.length; i++)
 		{
 			theEmpire.setColonyPosition(R[i], revolvedPosition[i]);
@@ -443,40 +447,57 @@ public class ICAlgorithm
 	}
 
 
-//TODO
+
+	/**
+	 * Can make a colony become the imperialist 
+	 * if it is more powerful than the imperialist.
+	 * @param theEmpire
+	 */
 	private void possesEmpire(Empire theEmpire)
 	{
+		// Get the costs of the colonies
 		double[] coloniesCost = theEmpire.getColoniesCost();
 
+		// Get the cost of the best colony (the lowest cost)
 		int bestColonyInd = utils.getMinIndex(coloniesCost);
 		double minColoniesCost = coloniesCost[bestColonyInd]; 
 
+		// IF this cost is lower than the one of the imperialist
 		if(minColoniesCost < theEmpire.getImperialistCost())
 		{
+			// Backup the position and cost of the former imperialist
 			double[] oldImperialistPosition = theEmpire.getImperialistPosition();
 			double oldImperialistCost = theEmpire.getImperialistCost();
 
+			// Update the position and cost of the imperialist with the ones of the colony
 			theEmpire.setImperialistPosition(theEmpire.getColoniesPosition()[bestColonyInd]);
 			theEmpire.setImperialistCost(theEmpire.getColoniesCost()[bestColonyInd]);
 
+			// Update the position and cost of the former colony with the ones of the former imperialist
 			theEmpire.setColonyPosition(bestColonyInd, oldImperialistPosition);
 			theEmpire.setColonyCost(bestColonyInd, oldImperialistCost);
 		}
 	}
 
 
-//TODO
+
+	/**
+	 * Unites imperialists than are close to each other
+	 */
 	private void uniteSimilarEmpires()
 	{
-		double theresholdDistance = unitingThreshold * utils.getNorm(searchSpaceSize);
+		// Get the threshold distance between two empires
+		double thresholdDistance = unitingThreshold * utils.getNorm(searchSpaceSize);
+		
+		// Get the number of empires
 		int numOfEmpires = empiresList.length;
 
+		// Compare each empire with the other ones
 		for(int i=0; i<(numOfEmpires-1); i++)
 		{
 			for(int j=i+1; j<numOfEmpires; j++)
 			{
-
-				// Compute the distance between two empires
+				// Compute the distance between the two empires i and j
 				double[] distanceVector = new double[empiresList[i].getImperialistPosition().length];
 				for(int k=0; k<empiresList[i].getImperialistPosition().length; k++)
 				{
@@ -485,10 +506,9 @@ public class ICAlgorithm
 				double distance = utils.getNorm(distanceVector);
 
 				// If the empires are too close
-				if(distance<=theresholdDistance)
+				if(distance<=thresholdDistance)
 				{
-					System.out.println("distance = " + distance + " thresesholdDistance = " + theresholdDistance + "fusion of empires " + i + "+" + j);
-					
+					// Get the best and worst empires of the two
 					int betterEmpireInd;
 					int worseEmpireInd;
 					if(empiresList[i].getImperialistCost() < empiresList[j].getImperialistCost())
@@ -510,8 +530,7 @@ public class ICAlgorithm
 					double[] newColoniesCost = getColonyCostsOfUnitedEmpire(betterEmpireInd, worseEmpireInd);
 					empiresList[betterEmpireInd].setColoniesCost(newColoniesCost);
 
-
-					// Update TotalCost for new United Empire                                     
+					// Update the total cost of the united empire                                     
 					empiresList[betterEmpireInd].setTotalCost(
 							empiresList[betterEmpireInd].getImperialistCost() +
 							zeta * utils.getMean(empiresList[betterEmpireInd].getColoniesCost())
@@ -519,7 +538,7 @@ public class ICAlgorithm
 
 					// Update the empires list
 					deleteAnEmpire(worseEmpireInd);
-					System.out.println("New number of empires: " + empiresList.length);
+					//System.out.println("New number of empires: " + empiresList.length);
 
 					return;
 				}
@@ -529,79 +548,102 @@ public class ICAlgorithm
 	}
 
 
-//TODO
+
+	/**
+	 * Returns the costs of the colonies of the united empire (after two empires merge) 
+	 * @param betterEmpireInd the best empire
+	 * @param worseEmpireInd the worst empire
+	 * @return the corresponding colony costs
+	 */
 	private double[] getColonyCostsOfUnitedEmpire(int betterEmpireInd, int worseEmpireInd) 
 	{
-		int newSize2 = 
+		// Get the new number of colonies of the united empire
+		int newColoniesCount = 
 			empiresList[betterEmpireInd].getColoniesCost().length + 
 			1 + 
 			empiresList[worseEmpireInd].getColoniesCost().length;
 
-		double[] newColoniesCost = new double[newSize2];
+		// Create a new vector to store the costs of the colonies
+		double[] newColoniesCost = new double[newColoniesCount];
 
-		int m2;
-
-		for(m2=0; m2<empiresList[betterEmpireInd].getColoniesCost().length; m2++)
+		// At first, store the costs of the colonies of the best empire in the vector
+		int i;
+		for(i=0; i<empiresList[betterEmpireInd].getColoniesCost().length; i++)
 		{
-			newColoniesCost[m2] = empiresList[betterEmpireInd].getColoniesCost()[m2];
+			newColoniesCost[i] = empiresList[betterEmpireInd].getColoniesCost()[i];
 		}
 
-		newColoniesCost[m2] = empiresList[worseEmpireInd].getImperialistCost();
+		// Then add the cost of the former worst imperialist
+		newColoniesCost[i] = empiresList[worseEmpireInd].getImperialistCost();
 		
-		int index2;	
-		for(index2=m2+1; index2<newSize2; index2++)
+		// Finally, add the costs of the colonies of the worst empire
+		int i2;	
+		for(i2=i+1; i2<newColoniesCount; i2++)
 		{
-			newColoniesCost[index2] = empiresList[worseEmpireInd].getColoniesCost()[index2-empiresList[betterEmpireInd].getColoniesCost().length-1];
+			newColoniesCost[i2] = empiresList[worseEmpireInd].getColoniesCost()[i2-empiresList[betterEmpireInd].getColoniesCost().length-1];
 		}
+		
+		// Return the vector with the updated costs
 		return newColoniesCost;
 	}
 
-//TODO
+
+
+	/**
+	 * Returns the positions of the colonies of the united empire (after two empires merge) 
+	 * @param betterEmpireInd the best empire
+	 * @param worseEmpireInd the worst empire
+	 * @return the corresponding colony positions
+	 */
 	private double[][] getColonyPositionsOfUnitedEmpire(int betterEmpireInd, int worseEmpireInd) 
 	{
-		
-		System.out.println("Uniting empire colonies positions:");
-		System.out.println("best colonies: " + empiresList[betterEmpireInd].getColoniesPosition().length + " worst colonies = " + empiresList[worseEmpireInd].getColoniesPosition().length);
-		
-		// The new size = the best empire's colony count + the weakest empire's colony's count + its imperialist
+		// Get the new number of colonies of the united empire
 		int newSize = 
 			empiresList[betterEmpireInd].getColoniesPosition().length + 
 			1 + 
 			empiresList[worseEmpireInd].getColoniesPosition().length;
-
+		
+		// Create a new array to store the positions of the colonies
 		double[][] newColoniesPosition = new double[newSize][problemDimension];
 
-		int m;
-		for(m=0; m<empiresList[betterEmpireInd].getColoniesPosition().length; m++)
+		// At first, store the positions of the colonies of the best empire in the array
+		int i;
+		for(i=0; i<empiresList[betterEmpireInd].getColoniesPosition().length; i++)
 		{
-			newColoniesPosition[m] = empiresList[betterEmpireInd].getColoniesPosition()[m];
+			newColoniesPosition[i] = empiresList[betterEmpireInd].getColoniesPosition()[i];
 		}
 		
-		newColoniesPosition[m] = empiresList[worseEmpireInd].getImperialistPosition();
+		// Then add the position of the former worst imperialist
+		newColoniesPosition[i] = empiresList[worseEmpireInd].getImperialistPosition();
 		
-		int index;	
-		for(index=m+1; index<newSize; index++)
+		// Finally, add the costs of the colonies of the worst empire
+		int i2;	
+		for(i2=i+1; i2<newSize; i2++)
 		{
-			newColoniesPosition[index] = empiresList[worseEmpireInd].getColoniesPosition()[index-empiresList[betterEmpireInd].getColoniesPosition().length-1];
+			newColoniesPosition[i2] = empiresList[worseEmpireInd].getColoniesPosition()[i2-empiresList[betterEmpireInd].getColoniesPosition().length-1];
 		}
-		
-		System.out.println("united empire colonies: " + newColoniesPosition.length);
-		
+
+		// Return the array with the updated positions
 		return newColoniesPosition;
 	
 	}
 
 
 
-
-//TODO
+	/**
+	 * Runs the competition between empires
+	 */
 	private void imperialisticCompetition()
 	{
+		
+		// Generate a random number, and return if this number is too high
 		double rand = r.nextDouble();
 		if(rand > .11)
 		{
 			return;
 		}
+		
+		// Idem if their is only one empire
 		if(empiresList.length<=1)
 		{
 			return;
@@ -613,13 +655,11 @@ public class ICAlgorithm
 		{
 			totalCosts[i] = empiresList[i].getTotalCost();
 		}
-		System.out.println("totalcosts = " + Arrays.toString(totalCosts));//TODO
+		//utils.printArray("totalCosts", totalCosts);
 		
-		// Get the weakest empire and its cost
+		// Get the weakest empire (the one with the highest cost) and its cost
 		int weakestEmpireInd = utils.getMaxIndex(totalCosts);
 		double maxTotalCost = totalCosts[weakestEmpireInd]; 
-
-		System.out.println("weakestind = " + weakestEmpireInd + " cost = " + maxTotalCost);//TODO
 		
 		// Get the power of each empire
 		double[] totalPowers = new double[empiresList.length];
@@ -627,6 +667,7 @@ public class ICAlgorithm
 		{
 			totalPowers[i] = maxTotalCost - totalCosts[i];
 		}
+		//utils.printArray("totalPowers", totalPowers);
 
 		// Get the possession probability of each empire
 		double[] possessionProbability = new double[empiresList.length];
@@ -634,128 +675,203 @@ public class ICAlgorithm
 		{
 			possessionProbability[i] = totalPowers[i] / utils.getSum(totalPowers);
 		}
-		System.out.println("totalpowers = " + Arrays.toString(totalPowers));//TODO
-		System.out.println("proba = " + Arrays.toString(possessionProbability));//TODO
+		//utils.printArray("possessionProbability", possessionProbability);
 		
 		// Select an empire according to their probabilities
 		int selectedEmpireInd = selectAnEmpire(possessionProbability);
-		System.out.println("selectedind = " + selectedEmpireInd);//TODO
+		//System.out.println("selectedind: " + selectedEmpireInd);
 		
 		// Generate a random integer
-		int nn = empiresList[weakestEmpireInd].getColoniesCost().length;
-		int jj = r.nextInt(nn);
+		int numOfColoniesOfWeakestEmpire = empiresList[weakestEmpireInd].getColoniesCost().length;
+		int indexOfSelectedColony = r.nextInt(numOfColoniesOfWeakestEmpire);
 
-		System.out.println("jj = " + jj);
-		System.out.println("colonies length = " + empiresList[weakestEmpireInd].getColoniesPosition().length);
+		// Update the positions of the colonies of the selected empire 
+		// by adding the position of the randomly selected colony of the weakest empire
+		empiresList[selectedEmpireInd].setColoniesPosition(	
+				concatenatePositions(
+						empiresList[selectedEmpireInd].getColoniesPosition(), 
+						empiresList[weakestEmpireInd].getColoniesPosition()[indexOfSelectedColony]
+				)
+		);
+
+		// Idem for the costs
+		empiresList[selectedEmpireInd].setColoniesCost( 
+				concatenateCosts(
+						empiresList[selectedEmpireInd].getColoniesCost(), 
+						empiresList[weakestEmpireInd].getColoniesCost()[indexOfSelectedColony]
+				) 
+		);
+
+		// Update the positions of the colonies of the weakest empire 
+		// by removing the position of the randomly selected colony of the empire
+		empiresList[weakestEmpireInd].setColoniesPosition( 
+				removeColonyPosition(empiresList[weakestEmpireInd].getColoniesPosition(), indexOfSelectedColony) 
+		);
+
+		// Idem for the costs
+		empiresList[weakestEmpireInd].setColoniesCost( 
+				removeColonyCost(empiresList[weakestEmpireInd].getColoniesCost(), indexOfSelectedColony) 
+		);
+
+		// Get the number of colonies of the weakest empire
+		numOfColoniesOfWeakestEmpire = empiresList[weakestEmpireInd].getColoniesCost().length;
 		
-		empiresList[selectedEmpireInd].setColoniesPosition(	concetenatePositions(empiresList[selectedEmpireInd].getColoniesPosition(), empiresList[weakestEmpireInd].getColoniesPosition()[jj]) );
-
-		empiresList[selectedEmpireInd].setColoniesCost( concatenateCosts(empiresList[selectedEmpireInd].getColoniesCost(), empiresList[weakestEmpireInd].getColoniesCost()[jj]) );
-
-		empiresList[weakestEmpireInd].setColoniesPosition( removeColonyPosition(empiresList[weakestEmpireInd].getColoniesPosition(), jj) );
-
-		empiresList[weakestEmpireInd].setColoniesCost( removeColonyCost(empiresList[weakestEmpireInd].getColoniesCost(), jj) );
-
-		// Collapse of the the weakest colony-less Empire
-		nn = empiresList[weakestEmpireInd].getColoniesCost().length;
-		System.out.println("weakest empire has: " + nn + " colonies");
-		if(nn<=1)
+		// If it has not more than 1 colony, then make it disapear/collapse
+		// It is then absorbed by the selected empire
+		if(numOfColoniesOfWeakestEmpire<=1)
 		{
-			empiresList[selectedEmpireInd].setColoniesPosition( concetenatePositions(empiresList[selectedEmpireInd].getColoniesPosition(), empiresList[weakestEmpireInd].getImperialistPosition()) );
-
-			empiresList[selectedEmpireInd].setColoniesCost( concatenateCosts(empiresList[selectedEmpireInd].getColoniesCost(), empiresList[weakestEmpireInd].getImperialistCost()) );
-
-			// Update the empires list
+			// Update the positions of the colonies by adding the collapsed imperialist
+			empiresList[selectedEmpireInd].setColoniesPosition( 
+					concatenatePositions(
+							empiresList[selectedEmpireInd].getColoniesPosition(), 
+							empiresList[weakestEmpireInd].getImperialistPosition()
+					) 
+			);
+			
+			// Idem for the costs
+			empiresList[selectedEmpireInd].setColoniesCost( 
+					concatenateCosts(
+							empiresList[selectedEmpireInd].getColoniesCost(), 
+							empiresList[weakestEmpireInd].getImperialistCost()
+					) 
+			);
+			
+			// Erase the collapsed empire from the empires list
 			deleteAnEmpire(weakestEmpireInd);
-			System.out.println("New number of empires: " + empiresList.length);
+			//System.out.println("An empire has collapsed");
+			//System.out.println("New number of empires: " + empiresList.length);
 		}
 
 	}
 
 
+	
+	/**
+	 * Removes a position from the colony positions array
+	 * @param colonyPositions
+	 * @param indexToRemove
+	 * @return the updated positions
+	 */
 	private double[][] removeColonyPosition(double[][] colonyPositions, int indexToRemove)
 	{
+		// Create a new array to store the updated positions
 		double[][] newColonyPositions = new double[colonyPositions.length-1][colonyPositions[0].length];
 
+		// Copy in it the positions before the colony to remove
 		for(int i=0; i<indexToRemove; i++)
 		{
 			newColonyPositions[i] = colonyPositions[i];
 		}
 
+		// Then copy the rest of the positions, without including to colony to remove
 		for(int j=indexToRemove; j<newColonyPositions.length; j++)
 		{
 			newColonyPositions[j] = colonyPositions[j+1];
 		}
 
+		// Return the updated positions
 		return newColonyPositions;
 	}
 
+	
 
+	/**
+	 * Removes a position from the colony costs vector
+	 * @param colonyCosts
+	 * @param indexToRemove
+	 * @return the updated costs vector
+	 */
 	private double[] removeColonyCost(double[] colonyCosts, int indexToRemove)
 	{
+		// Create a new vector to store the updated costs
 		double[] newColonyCosts = new double[colonyCosts.length-1];
 
+		// Copy in it the costs before the colony to remove
 		for(int i=0; i<indexToRemove; i++)
 		{
 			newColonyCosts[i] = colonyCosts[i];
 		}
 
+		// Then copy the rest of the costs, without including to colony to remove
 		for(int j=indexToRemove; j<newColonyCosts.length; j++)
 		{
 			newColonyCosts[j] = colonyCosts[j+1];
 		}
 
+		// Return the updated costs
 		return newColonyCosts;
 	}
 
 
-	private double[][] concetenatePositions(double[][] positions1, double[] position2)
+	
+	/**
+	 * Concatenates the positions of an empire with an additionnal one
+	 * @param positions1 the positions array of the empire
+	 * @param position2 the position to add
+	 * @return the updated positions
+	 */
+	private double[][] concatenatePositions(double[][] positions1, double[] position2)
 	{
-		System.out.println("conatenating colony positions: " + positions1.length);
-		
-		int newSize = positions1.length+1;
-		double[][] newPositions = new double[newSize][positions1[0].length];
+		// Create a new array to store the updated positions 
+		double[][] newPositions = new double[positions1.length+1][positions1[0].length];
 
+		// Add the positions of the existing empire in the array
 		int i;
-
 		for(i=0; i<positions1.length; i++)
 		{
 			newPositions[i] = positions1[i];
 		}
 
+		// Then add the position to add at the end
 		newPositions[i] = position2;
 
+		// Return the updated positions
 		return newPositions;
 	}
 
+	
 
+	/**
+	 * Concatenates the costs of an empire with an additionnal one
+	 * @param costs1 the costs vector of the empire
+	 * @param cost2 the cost to add
+	 * @return the updated costs
+	 */
 	private double[] concatenateCosts(double[] costs1, double cost2)
 	{
-		int newSize = costs1.length+1;
-		double[] newCosts = new double[newSize];
+		// Create a new vector to store the updated costs
+		double[] newCosts = new double[costs1.length+1];
 
+		// Add the costs of the existing empire in the array
 		int i;
-
 		for(i=0; i<costs1.length; i++)
 		{
 			newCosts[i] = costs1[i];
 		}
 
+		// Then add the cost to add at the end
 		newCosts[i] = cost2;
 
+		// Return the updated costs
 		return newCosts;
 	}
 
 
+	
+	/**
+	 * Deletes an empire from the empires list
+	 * @param indexToDelete
+	 */
 	private void deleteAnEmpire(int indexToDelete)
 	{
-		System.out.println("Deleting an empire");
-		
+		// Split the empires list into two sub lists, before and after the empire to remove
 		Empire[] empiresList1 = Arrays.copyOfRange(empiresList, 0, indexToDelete);
 		Empire[] empiresList2 = Arrays.copyOfRange(empiresList, indexToDelete+1, empiresList.length);
 
+		// Create a new list with the updated size
 		empiresList = new Empire[empiresList1.length+empiresList2.length];
 		
+		// Copy the empires of the sub lists into the new one
 		for(int n=0; n<(empiresList1.length + empiresList2.length); n++)
 		{
 			if(n<empiresList1.length)
@@ -771,35 +887,39 @@ public class ICAlgorithm
 	}
 
 
+	
+	/**
+	 * Selects an empire according to their probabilities 
+	 * @param probability the probability vector
+	 * @return the selected empire index
+	 */
 	private int selectAnEmpire(double[] probability)
 	{
-		int index;
-		
-		//System.out.println("proba = " + Arrays.toString(probability));//TODO
-		
+		// Create a vector of random numbers
 		double[] randVector = new double[probability.length];
 		for(int i=0; i<probability.length; i++)
 		{
 			randVector[i] = r.nextDouble();
 		}
-		System.out.println("randvector = " + Arrays.toString(randVector));//TODO
 		
+		// Substract to each element of this vector the corresponding 
+		// value of the probability vector
 		double[] dVector = new double[probability.length];
 		for(int i=0; i<probability.length; i++)
 		{
 			dVector[i] = probability[i] - randVector[i];
 		}
-		System.out.println("dvector = " + Arrays.toString(dVector));//TODO
 		
-		index =  utils.getMaxIndex(dVector);
-		return index;
+		// Return the index of the maximum value of the vector
+		return utils.getMaxIndex(dVector);
 	}
 
 
-	// This functions creates random numbers between [1 MaxInt] (1 itself and MaxInt itself)
 
-
-
+	/**
+	 * Returns a string with informtion about the algorithm
+	 * @return the string
+	 */
 	public String getDetails()
 	{
 		return "Imperialist Competitive Algorithm (ICA): " + 
@@ -809,6 +929,10 @@ public class ICAlgorithm
 
 
 
+	/**
+	 * Returns a string with the name of the algorithm
+	 * @return the string
+	 */
 	public String getName() 
 	{
 		return "Imperialist Competitive Algorithm";
