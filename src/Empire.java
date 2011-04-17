@@ -1,3 +1,21 @@
+/*	
+ * Copyright 2011, Robin Roche
+ * This file is part of jica.
+
+    jica is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    jica is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with jica.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 
 /**
  * Class creating the empire type, with its imperialists, colonies 
@@ -38,48 +56,55 @@ public class Empire
 
 	
 	// Getters and setters
-	public double[] getImperialistPosition() {
+	public double[] getImperialistPosition() 
+	{
 		return imperialistPosition;
 	}
-	public void setImperialistPosition(double[] imperialistPosition) {
+	public void setImperialistPosition(double[] imperialistPosition) 
+	{
 		this.imperialistPosition = imperialistPosition;
 	}
-	public double getImperialistCost() {
+	public double getImperialistCost() 
+	{
 		return imperialistCost;
 	}
-	public void setImperialistCost(double imperialistCost) {
+	public void setImperialistCost(double imperialistCost) 
+	{
 		this.imperialistCost = imperialistCost;
 	}
-	public double[][] getColoniesPosition() {
+	public double[][] getColoniesPosition() 
+	{
 		return coloniesPosition;
 	}
-	public void setColoniesPosition(double[][] coloniesPosition) {
+	public void setColoniesPosition(double[][] coloniesPosition) 
+	{
 		this.coloniesPosition = coloniesPosition;
 	}
-	public double[] getColoniesCost() {
+	public double[] getColoniesCost() 
+	{
 		return coloniesCost;
 	}
-	public void setColoniesCost(double[] coloniesCost) {
+	public void setColoniesCost(double[] coloniesCost) 
+	{
 		this.coloniesCost = coloniesCost;
 	}
-	public double getTotalCost() {
+	public double getTotalCost() 
+	{
 		return totalCost;
 	}
-	public void setTotalCost(double totalCost) {
+	public void setTotalCost(double totalCost) 
+	{
 		this.totalCost = totalCost;
 	}
-	public void setColoniesPosition(int bestColonyInd, double[] oldImperialistPosition) 
+	public void setColonyPosition(int colonyIndex, double[] position) 
 	{
-		this.coloniesPosition[bestColonyInd] = oldImperialistPosition;
+		this.coloniesPosition[colonyIndex] = position;
 	}
-	public void setColoniesCost(int bestColonyInd, double oldImperialistCost) 
+	public void setColonyCost(int colonyIndex, double cost) 
 	{
-		this.coloniesCost[bestColonyInd] = oldImperialistCost;
+		this.coloniesCost[colonyIndex] = cost;
 	}
-	public void setColonyPosition(int i, double[] ds) 
-	{
-		this.coloniesPosition[i] = ds;			
-	}
+
 
 }
 

@@ -1,3 +1,22 @@
+/*	
+ * Copyright 2011, Robin Roche
+ * This file is part of jica.
+
+    jica is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    jica is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with jica.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -106,7 +125,7 @@ public class ICAUtils
 	}
 
 
-	
+
 	/**
 	 * Returns the sum of the elements on a vector
 	 * @param vector the vector
@@ -133,7 +152,7 @@ public class ICAUtils
 	public double[][] max(double[][] array1, double[][] array2) 
 	{
 		double maxArray[][] = new double[array1.length][array1[0].length];
-	
+
 		for(int i=0; i<array1.length; i++)
 		{
 			for(int j=0; j<array1[0].length; j++)
@@ -155,7 +174,7 @@ public class ICAUtils
 	public double[][] min(double[][] array1, double[][] array2) 
 	{
 		double minArray[][] = new double[array1.length][array1[0].length];
-	
+
 		for(int i=0; i<array1.length; i++)
 		{
 			for(int j=0; j<array1[0].length; j++)
@@ -182,10 +201,10 @@ public class ICAUtils
 		{
 			nVector.add(i);
 		}
-		
+
 		int[] outputVector = new int[n];
 		int outputIndex = 0;
-		
+
 		while(nVector.size()>0)
 		{
 			int position = r.nextInt(nVector.size());
@@ -193,7 +212,7 @@ public class ICAUtils
 			outputIndex++;
 			nVector.remove(position);
 		}
-	
+
 		return outputVector;
 	}
 
@@ -238,7 +257,7 @@ public class ICAUtils
 	}
 
 
-	
+
 	/**
 	 * Returns an extract of an array, with only selected indexes extracted
 	 * @param array the array to be extracted from
@@ -256,8 +275,8 @@ public class ICAUtils
 		}
 		return arrayExtract;
 	}
-	
-	
+
+
 
 	/**
 	 * Returns an extract of an array, with only selected indexes extracted
@@ -276,9 +295,9 @@ public class ICAUtils
 		}
 		return arrayExtract;
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Prints the values of an array
 	 * @param arrayName
@@ -288,9 +307,9 @@ public class ICAUtils
 	{
 		System.out.println(arrayName + ": " + Arrays.toString(array));
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Prints the values of an array
 	 * @param arrayName
@@ -305,7 +324,7 @@ public class ICAUtils
 	}
 
 
-	
+
 	/**
 	 * Prints the values of an array
 	 * @param arrayName
@@ -331,6 +350,23 @@ public class ICAUtils
 		printArray("coloniesPosition", empire.getColoniesPosition());
 		printArray("coloniesCost", empire.getColoniesCost());
 		System.out.println("totalCost: " + empire.getTotalCost());
+	}
+
+
+	
+	/**
+	 * Returns the total number of colonies in the empires list
+	 * @param empiresList
+	 * @return the number of colonies
+	 */
+	public int getTotalColoniesCount(Empire[] empiresList) 
+	{
+		int currentNumOfColonies = 0;
+		for(int i=0; i<empiresList.length; i++)
+		{
+			currentNumOfColonies = currentNumOfColonies + empiresList[i].getColoniesPosition().length;
+		}
+		return currentNumOfColonies;
 	}
 
 }
