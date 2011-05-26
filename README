@@ -1,6 +1,6 @@
 1. Basic information
 
-JICA: A Java Implementation of the Imperialist Competitive Algorithm
+JICA: A Java Implementation of the Imperialist Competitive Algorithm for real variables
 Copyright (C) 2011, Robin Roche
 This code is a translation of Esmaeil Atashpaz Gargari's code in Matlab avaialble at:
 http://www.mathworks.com/matlabcentral/fileexchange/22046-imperialist-competitive-algorithm-ica

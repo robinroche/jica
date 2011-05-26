@@ -32,18 +32,30 @@ public class TestICA
 	public static void main(String[] args) 
 	{
 
+		// Step 1:
 		// Set the parameters for the optimization
 		int problemDimension = 2;		// The optimization dimension 
 		double[] minBounds = {-10,-10};	// The minimum bounds for each dimension
 		double[] maxBounds = {10,10};	// The maximum bounds for each dimension
 		
-		// 
+		// Step 2:
+		// Change the fitness function getCountryCost(double[] country) in file ICAlgorithm.java
+		// Change the parameters of the algorithm if needed, at the beginning of the same file
+		
+		// Step 3:
+		// Create, run the algorithm and get the results
 		Object[] argsICA ={problemDimension,minBounds,maxBounds};
 		ICAlgorithm ica = new ICAlgorithm(argsICA);
-
-		ica.runICA();
+		double[] results = ica.runICA();
+		
+		// Step 4:
+		// Display the results
+		System.out.println("ICA results:");
+		for(int i=0; i<problemDimension; i++)
+		{
+			System.out.println(results[i]);
+		}
 		
 	}
-
 
 }
