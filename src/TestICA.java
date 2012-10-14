@@ -1,3 +1,4 @@
+
 /*	
  * Copyright 2011, Robin Roche
  * This file is part of jica.
@@ -14,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with jica.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 
 
@@ -32,30 +33,29 @@ public class TestICA
 	public static void main(String[] args) 
 	{
 
-		// Step 1:
-		// Set the parameters for the optimization
-		int problemDimension = 2;		// The optimization dimension 
-		double[] minBounds = {-10,-10};	// The minimum bounds for each dimension
-		double[] maxBounds = {10,10};	// The maximum bounds for each dimension
+
+		// Set the fitness function and problem parameters
+		FitnessFunction fitnessFunc = new FitnessFunction();
+
+		// Create the algorithm object
+		ICAlgorithm ica = new ICAlgorithm(fitnessFunc);
 		
-		// Step 2:
-		// Change the fitness function getCountryCost(double[] country) in file ICAlgorithm.java
-		// Change the parameters of the algorithm if needed, at the beginning of the same file
-		
-		// Step 3:
-		// Create, run the algorithm and get the results
-		Object[] argsICA ={problemDimension,minBounds,maxBounds};
-		ICAlgorithm ica = new ICAlgorithm(argsICA);
-		double[] results = ica.runICA();
-		
-		// Step 4:
-		// Display the results
-		System.out.println("ICA results:");
-		for(int i=0; i<problemDimension; i++)
+		// Run the simulation
+		int nbRuns = 20;
+		int maxEvals = 200000;
+		for(int i=0;i<nbRuns;i++)
 		{
-			System.out.println(results[i]);
+			// Run the algorithm and get the results
+			double[] results = ica.runICA(maxEvals);
+			double bestFitness = fitnessFunc.getFitnessValue(results);
+			ica.reset();
+
+			// Display the results
+			System.out.println(bestFitness);
+			//System.out.println("ICA run results:");
+			//System.out.println("Best fitness:\t" + bestFitness);
+			//System.out.println("Best solution:\t" + Arrays.toString(results));
 		}
-		
 	}
 
 }
