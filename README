@@ -1,7 +1,7 @@
 1. Basic information
 
 JICA: A Java Implementation of the Imperialist Competitive Algorithm
-Copyright (C) 2011-2012, Robin Roche
+Copyright (C) 2011-2013, Robin Roche
 This code is a translation of Esmaeil Atashpaz Gargari's code in Matlab avaialble at:
 http://www.mathworks.com/matlabcentral/fileexchange/22046-imperialist-competitive-algorithm-ica
 
@@ -11,7 +11,7 @@ http://www.mathworks.com/matlabcentral/fileexchange/22046-imperialist-competitiv
 Robin Roche
 University of Technology of Belfort-Montbeliard
 www.utbm.fr
-Email: firstname.lastname@utbm.fr
+Email: robin.roche@utbm.fr
 
 
 3. Copyright notice
@@ -40,7 +40,7 @@ All contributions are welcome, especially to improve the performance
 of the algorithm and to correct bugs. 
 
 
-5. Re-use of the code
+5. Using jica
 
-If you use this code, please let me know it 
-(that's just to know if someone really uses it :) ).
+If you use this code in your research, please cite my paper which uses it:
+http://dx.doi.org/10.1007/978-3-642-35533-2_19
