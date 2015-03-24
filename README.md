@@ -28,7 +28,7 @@ For more information on ICA, check out Esmaeil Atashpaz Gargari’s [webpage](ht
 
 ### Code origin
 
-This code is a translation of Esmaeil Atashpaz Gargari's code in Matlab avaialble at:
+This code is a translation of Esmaeil Atashpaz Gargari's code in Matlab available at:
 http://www.mathworks.com/matlabcentral/fileexchange/22046-imperialist-competitive-algorithm-ica
 
 ### Using jica
